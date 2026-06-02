@@ -150,13 +150,14 @@ class Outcome(BaseModel):
 
 
 class PersonaDraft(BaseModel):
-    """Output of the deterministic offline drafter; persisted so the UI can re-show."""
+    """Output of the drafter (deterministic template or LLM); persisted so the UI can re-show."""
 
     id: str = Field(default_factory=new_id)
     shot_type_id: str
     persona: Cluster
     subject: Optional[str] = None
     body: str
+    engine: Literal["template", "llm"] = "template"
     params_used: dict = Field(default_factory=dict)
     created_at: str = Field(default_factory=utcnow_iso)
 
@@ -293,8 +294,15 @@ class DraftRequest(BaseModel):
     subcluster: Subcluster = "normal"
     context: dict = Field(default_factory=dict)
     seed: Optional[int] = None
+    use_llm: Optional[bool] = None  # None = auto (LLM if a key is configured)
 
 
 class OrchestrateRequest(BaseModel):
     request: str
     goal_id: Optional[str] = None
+
+
+class AdviseRequest(BaseModel):
+    question: str
+    goal_id: Optional[str] = None
+    persona: Cluster = "professional"

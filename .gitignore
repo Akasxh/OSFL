@@ -4,3 +4,8 @@ __pycache__/
 .pytest_cache/
 data/store.json
 .playwright-mcp/
+
+# secrets — never commit
+.env
+.env.*
+!.env.example

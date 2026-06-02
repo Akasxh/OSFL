@@ -13,7 +13,9 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from .llm import LLM
 from .models import (
+    AdviseRequest,
     DraftRequest,
     Goal,
     GoalCreate,
@@ -35,7 +37,8 @@ STATIC_DIR = ROOT / "static"
 store = Store(str(ROOT / "data" / "store.json"))
 loader = PersonaLoader(str(ROOT / "personas"))
 seed_store(store)
-orch = Orchestrator(store, loader)
+llm = LLM()
+orch = Orchestrator(store, loader, llm)
 
 # warm last_sim on every goal so GET /api/goals paints immediately (deterministic seed)
 for _raw in store.list("goals"):
@@ -61,6 +64,7 @@ def _state() -> dict:
         "wellbeing": orch.wellbeing.report(),
         "followups": orch.followup.due(),
         "personas": loader.all(),
+        "llm": {"available": llm.available, "model": llm.model if llm.available else None},
     }
 
 
@@ -198,13 +202,26 @@ def log_outcome(gid: str, body: OutcomeCreate) -> dict:
 # --------------------------------------------------------------------------- #
 @app.post("/api/draft")
 def post_draft(body: DraftRequest):
-    return orch.persona.make_draft(body.shot_type_id, body.persona, body.context, body.subcluster, body.seed)
+    return orch.persona.make_draft(
+        body.shot_type_id, body.persona, body.context, body.subcluster, body.seed, body.use_llm
+    )
 
 
 @app.post("/api/orchestrate")
 def post_orchestrate(body: OrchestrateRequest):
     intent = Orchestrator.infer_intent(body.request)
     return orch.route(intent, {"request": body.request, "goal_id": body.goal_id})
+
+
+@app.get("/api/llm/status")
+def llm_status() -> dict:
+    return {"available": llm.available, "model": llm.model if llm.available else None}
+
+
+@app.post("/api/advise")
+def post_advise(body: AdviseRequest) -> dict:
+    goal = _goal(body.goal_id) if body.goal_id else None
+    return orch.scenario.advise(body.question, goal, body.persona)
 
 
 def main() -> None:

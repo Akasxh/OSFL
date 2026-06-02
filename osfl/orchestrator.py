@@ -9,6 +9,7 @@ from __future__ import annotations
 from time import perf_counter
 
 from .agents import (
+    Advisor,
     DecisionAdvisor,
     Followup,
     Memory,
@@ -17,6 +18,7 @@ from .agents import (
     Simulator,
     Wellbeing,
 )
+from .llm import LLM
 from .models import AgentStep, Goal, OrchestratorTrace, ShotType
 from .persona.loader import PersonaLoader
 from .store import Store
@@ -33,15 +35,17 @@ class Orchestrator:
         "wellbeing": ["Wellbeing", "Followup"],
     }
 
-    def __init__(self, store: Store, loader: PersonaLoader) -> None:
+    def __init__(self, store: Store, loader: PersonaLoader, llm: LLM | None = None) -> None:
         self.store = store
         self.loader = loader
-        self.planner = Planner(store)
+        self.llm = llm or LLM()
+        self.planner = Planner(store, self.llm)
         self.simulator = Simulator(store)
-        self.persona = Persona(store, loader)
+        self.persona = Persona(store, loader, self.llm)
         self.followup = Followup(store)
         self.wellbeing = Wellbeing(store)
-        self.advisor = DecisionAdvisor(store)
+        self.advisor = DecisionAdvisor(store)          # strategy validation (deterministic)
+        self.scenario = Advisor(store, loader, self.llm)  # free-text scenario advice (LLM)
         self.memory = Memory(store)
 
     # -- routing ------------------------------------------------------------ #

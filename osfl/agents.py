@@ -1,12 +1,16 @@
-"""The seven OSFL agents. Each is a thin class over engine + store + persona with a
-single primary method. No LLM, no network — every output is deterministic given a seed.
+"""The OSFL agents. Each is a thin class over engine + store + persona.
 
-  Planner          decompose a goal into a funnel/habit; build the one cross-goal queue
+The engine math is always deterministic. The *language* agents (Planner.decompose,
+Persona.make_draft, Advisor.advise) optionally use an LLM when OPENAI_API_KEY is set, each
+with a deterministic offline fallback so the app never hard-depends on the network.
+
+  Planner          decompose a goal into a funnel/habit (LLM or archetype); build the queue
   Simulator        run Monte Carlo and cache last_sim on the goal
-  Persona          draft a 'you-voiced' message in the right cluster
+  Persona          draft a 'you-voiced' message in the right cluster (LLM or template)
   Followup         surface threads that need a nudge
   Wellbeing        momentum / streak / load / at-risk
   DecisionAdvisor  validate a strategy and frame fixes
+  Advisor          answer free-text scenario questions as a sharper version of you (LLM)
   Memory           conjugate-update a shot type's posterior from a logged outcome
 """
 
@@ -15,6 +19,7 @@ from __future__ import annotations
 from datetime import date, datetime
 
 from . import engine as E
+from .llm import LLM
 from .models import (
     Followup as FollowupModel,  # aliased: the agent class below is also named Followup
 )
@@ -31,6 +36,7 @@ from .models import (
 from .persona.drafter import draft as draft_fn
 from .persona.drafter import seed_from
 from .persona.loader import PersonaLoader
+from .persona.voice import split_subject, voice_system_prompt, voice_user_prompt
 from .store import Store
 
 
@@ -84,6 +90,54 @@ def _skeleton_for(shot_type_name: str) -> str:
         if key in low:
             return skel
     return "ask"
+
+
+# -- LLM goal-decomposition helpers (convert model JSON into an ARCHETYPES-shaped spec) ----- #
+def _clamp(x, lo: float, hi: float) -> float:
+    try:
+        x = float(x)
+    except (TypeError, ValueError):
+        return lo
+    return max(lo, min(hi, x))
+
+
+def _slug(s: str) -> str:
+    import re
+
+    out = re.sub(r"[^a-z0-9]+", "_", (s or "step").lower()).strip("_")
+    return out or "step"
+
+
+def _persona_of(p) -> str:
+    return p if p in ("professional", "friends", "family") else "professional"
+
+
+def _spec_from_llm(data: dict) -> dict:
+    """Turn the model's JSON into the same spec shape Planner.ARCHETYPES uses."""
+    if data.get("kind") == "habit":
+        mean = _clamp(data.get("adherence", 0.6), 0.05, 0.95)
+        a, b = E.beta_from_mean(mean, 12.0)
+        name = data.get("shot_name", "Session")
+        return {
+            "kind": "habit",
+            "sessions": int(_clamp(data.get("scheduled_sessions", 60), 1, 100_000)),
+            "target": int(_clamp(data.get("target_sessions", 30), 1, 100_000)),
+            "shot": (_slug(name), name, mean, a, b, _persona_of(data.get("persona"))),
+        }
+    stages = []
+    for s in (data.get("stages") or [])[:5]:
+        mean = _clamp(s.get("conversion", 0.2), 0.01, 0.97)
+        a, b = E.beta_from_mean(mean, 12.0)
+        label = s.get("name", "Stage")
+        stages.append((_slug(label), label, mean, a, b, _persona_of(s.get("persona"))))
+    if not stages:
+        raise ValueError("LLM returned no stages")
+    return {
+        "kind": "funnel",
+        "stages": stages,
+        "n0": int(_clamp(data.get("n0_volume", 50), 1, 1_000_000)),
+        "target": int(_clamp(data.get("target_successes", 1), 1, 10_000)),
+    }
 
 
 # --------------------------------------------------------------------------- #
@@ -231,8 +285,9 @@ class Planner:
         },
     }
 
-    def __init__(self, store: Store) -> None:
+    def __init__(self, store: Store, llm: LLM | None = None) -> None:
         self.store = store
+        self.llm = llm
 
     @staticmethod
     def detect_archetype(title: str) -> str:
@@ -254,17 +309,49 @@ class Planner:
         return st.id
 
     def decompose(self, goal: Goal, archetype: str | None = None) -> Goal:
-        arch = archetype or self.detect_archetype(goal.title)
-        spec = self.ARCHETYPES.get(arch, self.ARCHETYPES["generic"])
-        if spec["kind"] == "funnel":
-            from .models import Stage
+        spec = None
+        if archetype is None and self.llm is not None and self.llm.available:
+            try:
+                spec = _spec_from_llm(self._llm_decompose(goal))
+            except Exception:
+                spec = None  # any failure → deterministic archetype
+        if spec is None:
+            arch = archetype or self.detect_archetype(goal.title)
+            spec = self.ARCHETYPES.get(arch, self.ARCHETYPES["generic"])
+        return self._apply_spec(goal, spec)
 
+    def _llm_decompose(self, goal: Goal) -> dict:
+        sys = (
+            "You are a planning strategist. Break a goal into either a realistic ordered "
+            "conversion FUNNEL or a recurring HABIT, with grounded conversion rates. "
+            "Respond with strict JSON only."
+        )
+        shape = (
+            '{"kind":"funnel","stages":[{"name":"Apply","conversion":0.08,"persona":"professional"}],'
+            '"n0_volume":60,"target_successes":1}  OR  '
+            '{"kind":"habit","shot_name":"Gym session","adherence":0.6,'
+            '"scheduled_sessions":60,"target_sessions":36,"persona":"friends"}'
+        )
+        usr = (
+            f'Goal: "{goal.title}".\n'
+            "Give 2-4 ordered funnel stages (each with a 0..1 per-stage conversion and a persona "
+            "of professional|friends|family), a realistic starting volume, and a target count. "
+            "Use a habit instead only for recurring fitness/health/practice goals.\n"
+            f"JSON shape: {shape}"
+        )
+        return self.llm.chat_json(sys, usr, temperature=0.5, max_tokens=500)
+
+    def _apply_spec(self, goal: Goal, spec: dict) -> Goal:
+        from .models import Stage
+
+        if spec["kind"] == "funnel":
             stages = []
             for order, (name, label, mean, a, b, persona) in enumerate(spec["stages"]):
                 stid = self._ensure_shot_type(name, label, mean, a, b, persona)
                 stages.append(Stage(name=label, shot_type_id=stid, order=order))
             goal.kind = "funnel"
             goal.stages = stages
+            goal.shot_type_id = None
             if not goal.n0_volume:
                 goal.n0_volume = spec["n0"]
             goal.target_successes = goal.target_successes or spec["target"]
@@ -273,6 +360,7 @@ class Planner:
             stid = self._ensure_shot_type(name, label, mean, a, b, persona)
             goal.kind = "habit"
             goal.shot_type_id = stid
+            goal.stages = []
             if not goal.target_sessions:
                 goal.target_sessions = spec["target"]
             if not goal.n0_volume:
@@ -356,9 +444,10 @@ class Planner:
 
 
 class Persona:
-    def __init__(self, store: Store, loader: PersonaLoader) -> None:
+    def __init__(self, store: Store, loader: PersonaLoader, llm: LLM | None = None) -> None:
         self.store = store
         self.loader = loader
+        self.llm = llm
 
     def make_draft(
         self,
@@ -367,12 +456,40 @@ class Persona:
         context: dict | None = None,
         subcluster: str = "normal",
         seed: int | None = None,
+        use_llm: bool | None = None,
     ) -> PersonaDraft:
         params = self.loader.get(cluster)
         ctx = dict(context or {})
         ctx.setdefault("shot_type_id", shot_type_id)
         raw = self.store.get("shot_types", shot_type_id)
         skeleton = ctx.get("skeleton") or _skeleton_for(raw["name"] if raw else "")
+
+        llm_on = self.llm is not None and self.llm.available
+        want_llm = llm_on if use_llm is None else (use_llm and llm_on)
+        if want_llm:
+            try:
+                system = voice_system_prompt(params, self.loader.prose(cluster), subcluster)
+                user = voice_user_prompt(skeleton, ctx)
+                text = self.llm.chat(system, user, temperature=0.8, max_tokens=400)
+                subject, body = split_subject(text)
+                d = PersonaDraft(
+                    shot_type_id=shot_type_id,
+                    persona=cluster,
+                    subject=subject,
+                    body=body,
+                    engine="llm",
+                    params_used={
+                        "cluster": cluster,
+                        "subcluster": subcluster,
+                        "shot_type": skeleton,
+                        "model": self.llm.model,
+                    },
+                )
+                self.store.upsert("drafts", d.model_dump())
+                return d
+            except Exception:
+                pass  # fall through to the deterministic template
+
         if seed is None:
             seed = seed_from(ctx.get("goal_id"), ctx.get("stage_id"), ctx.get("contact_id"))
         d = draft_fn(skeleton, params, subcluster, ctx, seed)
@@ -481,3 +598,47 @@ class Wellbeing:
             at_risk_goals=at_risk,
             message=message,
         )
+
+
+class Advisor:
+    """Scenario advice — answers a free-text question as a sharper version of the user,
+    grounded in their goals + forecasts + persona voice. LLM-backed; offline returns a note."""
+
+    def __init__(self, store: Store, loader: PersonaLoader, llm: LLM | None = None) -> None:
+        self.store = store
+        self.loader = loader
+        self.llm = llm
+
+    def _grounding(self, focus: Goal | None) -> str:
+        goals = [Goal(**g) for g in self.store.list("goals")]
+        lines = []
+        for g in goals:
+            p = g.last_sim.p_success if g.last_sim else None
+            ptxt = f"{p:.0%}" if p is not None else "n/a"
+            tag = "  <-- FOCUS" if focus and g.id == focus.id else ""
+            lines.append(
+                f"- {g.title} [{g.kind}] odds {ptxt} vs target {g.threshold:.0%}, "
+                f"deadline {g.deadline}, status {g.status}{tag}"
+            )
+        return "\n".join(lines) or "(no goals yet)"
+
+    def advise(self, question: str, goal: Goal | None = None, cluster: str = "professional") -> dict:
+        if self.llm is None or not self.llm.available:
+            return {
+                "available": False,
+                "answer": "Scenario advice needs an OpenAI key (set OPENAI_API_KEY in .env). "
+                "Forecasting, the priority queue, and template drafting all work offline.",
+                "model": None,
+            }
+        system = (
+            "You are a sharper, calmer version of the USER — their decision co-pilot. "
+            "Answer in the first person, grounded ONLY in the data provided. Be concrete, cite the "
+            "odds/numbers, and be honest when a plan is weak. 4-8 sentences. Voice notes:\n"
+            + self.loader.prose(cluster).strip()
+        )
+        user = f"My goals and current forecasts:\n{self._grounding(goal)}\n\nQuestion: {question}"
+        try:
+            answer = self.llm.chat(system, user, temperature=0.6, max_tokens=500)
+        except Exception as e:
+            return {"available": True, "answer": f"(LLM error: {type(e).__name__}) — try again.", "model": self.llm.model}
+        return {"available": True, "answer": answer, "model": self.llm.model}

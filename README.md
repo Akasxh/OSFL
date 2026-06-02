@@ -36,6 +36,30 @@ Inspect the entire backend at any time:
 cat data/store.json
 ```
 
+## Optional: turn on the LLM (you-voiced agents)
+
+OSFL runs **fully offline** by default. Add an OpenAI key to activate the language agents — the
+Monte-Carlo / Bayesian engine stays deterministic either way.
+
+```bash
+cp .env.example .env        # then put your key in .env (it is gitignored)
+# .env:
+#   OPENAI_API_KEY=sk-...
+#   OPENAI_MODEL=gpt-4o-mini
+```
+
+With a key set, three things upgrade from deterministic fallbacks to real model calls:
+
+- **You-voiced drafting** — the persona skill files (`personas/*.md`) become the system prompt, so
+  drafts sound like *you* in the right cluster. Toggle per-draft, or force the template with `use_llm:false`.
+- **Scenario advisor** — ask anything ("which goal should I prioritize?") and get an answer grounded
+  in your actual goals + forecasts, in your voice.
+- **Goal decomposition** — type any goal ("get my first novel published") and the planner builds a
+  realistic funnel, which the numpy engine then forecasts.
+
+Without a key these degrade gracefully (deterministic templates / archetypes / a "set a key" note),
+and the dashboard shows an `LLM off · offline templates` badge.
+
 ## The three "aha" moments
 
 1. **Funnels punish you nonlinearly.** 60 job applications through an 8% → 40% → 25% funnel is only a
@@ -63,7 +87,9 @@ osfl/
   persona/           digital-twin layer
     loader.py        parse personas/*.md front-matter
     drafter.py       deterministic, offline "you-voiced" drafting
-  agents.py          Planner / Simulator / Persona / Followup / Wellbeing / DecisionAdvisor / Memory
+    voice.py         build LLM prompts from the persona skill files
+  llm.py             optional OpenAI wrapper (graceful fallback when no key)
+  agents.py          Planner / Simulator / Persona / Followup / Wellbeing / DecisionAdvisor / Advisor / Memory
   orchestrator.py    routes a request → cluster + agent-set, emits a watchable trace
   seed.py            three demo goals with verified priors
   app.py             FastAPI routes + static dashboard
@@ -71,6 +97,7 @@ personas/            professional.md · friends.md · family.md  (the skill file
 static/              index.html · app.js  (dashboard) + vendored tailwind.js · alpine.min.js
 ```
 
-Everything runs with **zero network access** — Tailwind and Alpine are vendored into `static/`,
-so the dashboard works fully offline. The 20-test suite pins every headline number
-(`0.382` / `201` / `150` / posterior `(7,48)` / priority ranking) plus the persona guarantees.
+The Monte-Carlo / Bayesian core runs with **zero network access** (Tailwind and Alpine are vendored
+into `static/`), and the LLM layer is strictly additive on top. The 25-test suite pins every headline
+number (`0.382` / `201` / `150` / posterior `(7,48)` / priority ranking), the persona guarantees, and
+the offline LLM fallbacks.

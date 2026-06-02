@@ -12,12 +12,15 @@ function dash() {
     logForm: { shot_type_id: '', n_attempts: 20, k_successes: 3 },
     lastLog: null,
     personaTab: 'professional',
-    draftForm: { shot_type_id: '', subcluster: 'normal', name: '' },
+    draftForm: { shot_type_id: '', subcluster: 'normal', name: '', use_llm: true },
     draft: null,
     orchReq: 'is my plan realistic?',
     trace: null,
     showNewGoal: false,
     newGoal: { title: '', deadline: '' },
+    advice: null,
+    adviceLoading: false,
+    adviceForm: { question: 'Which goal should I prioritize this week, and why?', persona: 'professional' },
 
     // ---------- helpers ----------
     pct(x) { return (x === null || x === undefined) ? '—' : Math.round(x * 100) + '%'; },
@@ -129,11 +132,25 @@ function dash() {
         subcluster: this.draftForm.subcluster,
         context: { name: this.draftForm.name || 'there', goal_id: g ? g.id : null },
         seed: this.seed,
+        use_llm: this.draftForm.use_llm,
       });
     },
     async orchestrate() {
       const g = this.activeGoal();
       this.trace = await this.post('orch', '/api/orchestrate', { request: this.orchReq, goal_id: g ? g.id : null });
+    },
+    async advise() {
+      const g = this.activeGoal();
+      this.adviceLoading = true;
+      try {
+        this.advice = await this.post('advise', '/api/advise', {
+          question: this.adviceForm.question,
+          goal_id: g ? g.id : null,
+          persona: this.adviceForm.persona,
+        });
+      } finally {
+        this.adviceLoading = false;
+      }
     },
     async createGoal() {
       if (!this.newGoal.title) return;

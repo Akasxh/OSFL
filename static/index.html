@@ -45,6 +45,10 @@
       streak <span class="text-blue-300" x-text="(state.wellbeing?.streak_days ?? 0)+'d'"></span> ·
       load <span class="text-amber-300" x-text="state.wellbeing?.load"></span>
     </div>
+    <div class="badge px-3 py-1.5 rounded-lg text-xs font-mono" x-show="state.llm">
+      <span x-show="state.llm?.available" class="text-emerald-300">✦ LLM <span x-text="state.llm?.model"></span></span>
+      <span x-show="!state.llm?.available" class="text-slate-500">LLM off · offline templates</span>
+    </div>
   </header>
 
   <main class="p-6 grid grid-cols-1 xl:grid-cols-12 gap-5">
@@ -312,10 +316,20 @@
           </select>
           <input class="px-2 py-1.5" placeholder="name" x-model="draftForm.name" />
         </div>
-        <button class="btn px-4 py-1.5 text-sm" @click="makeDraft()" x-text="'Draft in '+personaTab+' voice'"></button>
+        <div class="flex items-center gap-3">
+          <button class="btn px-4 py-1.5 text-sm" @click="makeDraft()" x-text="'Draft in '+personaTab+' voice'"></button>
+          <label class="text-xs text-slate-400 flex items-center gap-1.5" x-show="state.llm?.available">
+            <input type="checkbox" x-model="draftForm.use_llm" /> use LLM
+          </label>
+        </div>
         <template x-if="draft">
           <div class="mt-3 rounded-lg badge p-3">
-            <div class="text-xs text-slate-500 mb-1" x-show="draft.subject">Subject: <span class="text-slate-300" x-text="draft.subject"></span></div>
+            <div class="flex items-center justify-between mb-1">
+              <div class="text-xs text-slate-500" x-show="draft.subject">Subject: <span class="text-slate-300" x-text="draft.subject"></span></div>
+              <span class="text-[10px] px-1.5 py-0.5 rounded font-mono"
+                    :class="draft.engine==='llm' ? 'text-emerald-300 bg-emerald-500/10' : 'text-slate-400 bg-slate-700/30'"
+                    x-text="draft.engine==='llm' ? '✦ '+(draft.params_used?.model||'llm') : 'template (offline)'"></span>
+            </div>
             <pre class="text-sm whitespace-pre-wrap font-sans text-slate-200" x-text="draft.body"></pre>
           </div>
         </template>
@@ -352,6 +366,32 @@
             </div>
           </div>
         </template>
+      </div>
+
+      <!-- Panel 9: Scenario advisor (you-voiced) -->
+      <div class="card p-5">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="font-semibold">⑨ Scenario advisor <span class="text-xs text-slate-500">— a sharper version of you</span></h2>
+          <span class="text-[11px] text-slate-500 font-mono" x-text="badge('advise')"></span>
+        </div>
+        <div class="flex gap-1 mb-2">
+          <template x-for="c in ['professional','friends','family']" :key="c">
+            <button class="px-3 py-1 text-xs rounded-lg border"
+                    :class="adviceForm.persona===c ? 'border-blue-500 text-blue-300' : 'border-slate-700 text-slate-400'"
+                    @click="adviceForm.persona=c" x-text="c"></button>
+          </template>
+        </div>
+        <textarea class="w-full px-2 py-1.5 text-sm" rows="2" x-model="adviceForm.question"
+                  placeholder="Ask anything: 'Which goal should I prioritize?', 'How do I prep for the onsite?'"></textarea>
+        <button class="btn px-4 py-1.5 text-sm mt-2" @click="advise()" :disabled="adviceLoading"
+                x-text="adviceLoading ? 'Thinking…' : 'Ask (grounded in your data)'"></button>
+        <template x-if="advice">
+          <div class="mt-3 rounded-lg badge p-3">
+            <p class="text-sm whitespace-pre-wrap text-slate-200" x-text="advice.answer"></p>
+            <p class="text-[10px] text-slate-500 mt-2 font-mono" x-show="advice.model" x-text="'✦ '+advice.model+' · grounded in your goals + forecasts'"></p>
+          </div>
+        </template>
+        <p class="text-[11px] text-slate-600 mt-2" x-show="!state.llm?.available">Set <span class="font-mono">OPENAI_API_KEY</span> to enable you-voiced advice. Everything else works offline.</p>
       </div>
     </section>
   </main>
