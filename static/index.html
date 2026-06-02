@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OSFL — OS For Life</title>
+  <!-- Vendored locally so the dashboard runs fully offline (no CDN at runtime) -->
+  <script src="/static/tailwind.js"></script>
+  <script>
+    tailwind.config = { darkMode: 'class', theme: { extend: { fontFamily: {
+      mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'] } } } };
+  </script>
+  <script defer src="/static/app.js"></script>
+  <script defer src="/static/alpine.min.js"></script>
+  <style>
+    body { background:#0b0f17; color:#e5e9f0; }
+    .card { background:#111726; border:1px solid #1e293b; border-radius:14px; }
+    .badge { background:#0b1220; border:1px solid #1e293b; }
+    .pill-pass { background:rgba(16,185,129,.12); color:#34d399; border:1px solid rgba(16,185,129,.4); }
+    .pill-fail { background:rgba(244,63,94,.12); color:#fb7185; border:1px solid rgba(244,63,94,.4); }
+    input,select,textarea { background:#0b1220; border:1px solid #243049; color:#e5e9f0; border-radius:8px; }
+    input:focus,select:focus,textarea:focus { outline:none; border-color:#3b82f6; }
+    .btn { background:#1d4ed8; color:#fff; border-radius:8px; transition:.15s; }
+    .btn:hover { background:#2563eb; }
+    .btn-ghost { background:#0b1220; border:1px solid #243049; }
+    .btn-ghost:hover { border-color:#3b82f6; }
+    ::-webkit-scrollbar { width:8px; height:8px; } ::-webkit-scrollbar-thumb { background:#1e293b; border-radius:8px; }
+  </style>
+</head>
+<body x-data="dash()" x-init="init()" class="min-h-screen">
+  <!-- Header -->
+  <header class="px-6 py-5 border-b border-slate-800 flex flex-wrap items-center gap-4 sticky top-0 z-10" style="background:#0b0f17ee; backdrop-filter:blur(6px);">
+    <div>
+      <h1 class="text-2xl font-bold tracking-tight">OS<span class="text-blue-400">FL</span></h1>
+      <p class="text-xs text-slate-400 font-mono">outcome = probability × volume</p>
+    </div>
+    <div class="flex-1"></div>
+    <div class="flex items-center gap-2 text-sm">
+      <label class="text-slate-400">seed</label>
+      <input type="number" class="w-20 px-2 py-1 text-sm" x-model.number="seed" />
+      <button class="btn px-3 py-1.5 text-sm" @click="reloadAll()">↻ Reload state</button>
+    </div>
+    <div class="badge px-3 py-1.5 rounded-lg text-xs font-mono" x-show="state.wellbeing">
+      momentum <span class="text-blue-300" x-text="pct(state.wellbeing?.momentum)"></span> ·
+      streak <span class="text-blue-300" x-text="(state.wellbeing?.streak_days ?? 0)+'d'"></span> ·
+      load <span class="text-amber-300" x-text="state.wellbeing?.load"></span>
+    </div>
+  </header>
+
+  <main class="p-6 grid grid-cols-1 xl:grid-cols-12 gap-5">
+
+    <!-- LEFT: goals + queue + wellbeing -->
+    <section class="xl:col-span-5 space-y-5">
+
+      <!-- Panel 1: Goals + funnel -->
+      <div class="card p-5">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="font-semibold">① Goals &amp; funnels</h2>
+          <span class="text-[11px] text-slate-500 font-mono" x-text="badge('state')"></span>
+        </div>
+        <div class="space-y-3">
+          <template x-for="g in state.goals" :key="g.id">
+            <div class="rounded-xl p-3 cursor-pointer transition border"
+                 :class="g.id===activeGoalId ? 'border-blue-500 bg-blue-500/5' : 'border-slate-800 hover:border-slate-600'"
+                 @click="selectGoal(g.id)">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="font-medium" x-text="g.title"></span>
+                  <span class="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded badge text-slate-400" x-text="g.kind"></span>
+                </div>
+                <span class="text-sm font-mono px-2 py-0.5 rounded"
+                      :class="verdictClass(g)"
+                      x-text="g.last_sim ? pct(g.last_sim.p_success) : '—'"></span>
+              </div>
+              <!-- funnel bars -->
+              <template x-if="g.kind==='funnel' && g.last_sim && g.last_sim.per_stage_drop">
+                <div class="mt-2 space-y-1">
+                  <template x-for="(st,i) in g.stages" :key="st.id">
+                    <div class="flex items-center gap-2 text-[11px] font-mono">
+                      <span class="w-20 text-slate-400 truncate" x-text="st.name"></span>
+                      <div class="flex-1 bg-slate-800 rounded h-3 overflow-hidden">
+                        <div class="h-3 bg-blue-500/70 rounded"
+                             :style="`width:${barPct(g.last_sim.per_stage_drop[i], g.n0_volume)}%`"></div>
+                      </div>
+                      <span class="w-10 text-right text-slate-300" x-text="g.last_sim.per_stage_drop[i+1].toFixed(1)"></span>
+                    </div>
+                  </template>
+                  <div class="text-[11px] text-slate-500 font-mono pt-0.5">
+                    target ≥ <span x-text="g.target_successes"></span> ·
+                    deadline <span x-text="g.deadline"></span>
+                  </div>
+                </div>
+              </template>
+              <template x-if="g.kind==='habit' && g.last_sim">
+                <div class="mt-2 text-[11px] font-mono text-slate-400">
+                  target <span class="text-slate-200" x-text="g.target_sessions"></span> of
+                  <span x-text="g.n0_volume"></span> sessions ·
+                  median attended <span class="text-slate-200" x-text="g.last_sim.median_final"></span>
+                </div>
+              </template>
+            </div>
+          </template>
+        </div>
+        <button class="btn-ghost mt-3 w-full py-2 text-sm rounded-lg" @click="showNewGoal=!showNewGoal">+ New goal (auto-decomposed)</button>
+        <div x-show="showNewGoal" class="mt-3 space-y-2 text-sm">
+          <input class="w-full px-2 py-1.5" placeholder="Goal title (e.g. 'land a job', 'raise a seed round', 'get fit')" x-model="newGoal.title" />
+          <div class="flex gap-2">
+            <input type="date" class="flex-1 px-2 py-1.5" x-model="newGoal.deadline" />
+            <button class="btn px-3" @click="createGoal()">Create</button>
+          </div>
+          <p class="text-[11px] text-slate-500">The Planner detects the archetype and fills the funnel + prescribed volume.</p>
+        </div>
+      </div>
+
+      <!-- Panel 5: Priority queue -->
+      <div class="card p-5">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="font-semibold">⑤ Priority queue <span class="text-xs text-slate-500">— one list, all of life</span></h2>
+          <span class="text-[11px] text-slate-500 font-mono" x-text="badge('queue')"></span>
+        </div>
+        <div class="space-y-2">
+          <template x-for="(q,i) in state.queue" :key="q.goal_id+q.shot_type_id">
+            <div class="rounded-lg p-3 border border-slate-800">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="text-slate-500 font-mono text-sm" x-text="'#'+(i+1)"></span>
+                  <span class="font-medium" x-text="q.goal_title"></span>
+                  <span class="text-[10px] px-1.5 py-0.5 rounded badge text-slate-400" x-show="q.persona" x-text="q.persona"></span>
+                </div>
+                <span class="font-mono text-sm text-blue-300" x-text="q.score.toFixed(3)"></span>
+              </div>
+              <p class="text-[11px] text-slate-400 mt-1" x-text="q.rationale"></p>
+              <!-- factor bar -->
+              <div class="flex gap-1 mt-2 h-1.5">
+                <div class="bg-rose-500/70 rounded" :style="`width:${q.impact*100}%`" title="impact"></div>
+                <div class="bg-amber-500/70 rounded" :style="`width:${q.urgency*100}%`" title="urgency"></div>
+                <div class="bg-emerald-500/70 rounded" :style="`width:${q.long_term_value*100}%`" title="long-term value"></div>
+                <div class="bg-blue-500/70 rounded" :style="`width:${q.marginal_p_gain*100}%`" title="marginal P-gain"></div>
+              </div>
+            </div>
+          </template>
+        </div>
+        <p class="text-[10px] text-slate-600 mt-2 font-mono">bars: <span class="text-rose-400">impact</span> · <span class="text-amber-400">urgency</span> · <span class="text-emerald-400">ltv</span> · <span class="text-blue-400">marginal P-gain</span></p>
+      </div>
+
+      <!-- Panel 8: Wellbeing + follow-ups -->
+      <div class="card p-5">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="font-semibold">⑧ Wellbeing &amp; follow-ups</h2>
+          <span class="text-[11px] text-slate-500 font-mono" x-text="badge('wellbeing')"></span>
+        </div>
+        <template x-if="state.wellbeing">
+          <div>
+            <div class="flex items-center gap-3 mb-2">
+              <div class="flex-1 bg-slate-800 rounded-full h-2">
+                <div class="bg-blue-500 h-2 rounded-full" :style="`width:${state.wellbeing.momentum*100}%`"></div>
+              </div>
+              <span class="text-xs font-mono text-slate-400" x-text="'load: '+state.wellbeing.load"></span>
+            </div>
+            <p class="text-sm text-slate-300" x-text="state.wellbeing.message"></p>
+          </div>
+        </template>
+        <div class="mt-3 space-y-1.5">
+          <template x-for="f in state.followups" :key="f.goal_id+f.reason">
+            <div class="flex items-center justify-between text-xs border-t border-slate-800 pt-1.5">
+              <span><span class="text-slate-200" x-text="f.goal_title"></span><span class="text-slate-500" x-text="' — '+f.reason"></span></span>
+              <span class="font-mono text-amber-300" x-text="f.due_in_days===0 ? 'now' : f.due_in_days+'d'"></span>
+            </div>
+          </template>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT: active goal workspace -->
+    <section class="xl:col-span-7 space-y-5">
+      <div class="text-sm text-slate-400 font-mono" x-show="activeGoal()">
+        active goal → <span class="text-slate-100" x-text="activeGoal()?.title"></span>
+      </div>
+
+      <!-- Panel 2: Simulation -->
+      <div class="card p-5">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="font-semibold">② Monte-Carlo simulation</h2>
+          <span class="text-[11px] text-slate-500 font-mono" x-text="badge('sim')"></span>
+        </div>
+        <div class="flex items-center gap-4 mb-3">
+          <button class="btn px-4 py-1.5 text-sm" @click="simulate()">▶ Run 10k simulations</button>
+          <template x-if="sim">
+            <div class="flex items-baseline gap-2">
+              <span class="text-3xl font-bold" :class="sim.p_success>=activeGoal()?.threshold ? 'text-emerald-400':'text-rose-400'" x-text="pct(sim.p_success)"></span>
+              <span class="text-xs text-slate-500">P(success) · threshold <span x-text="pct(activeGoal()?.threshold)"></span></span>
+            </div>
+          </template>
+        </div>
+        <canvas id="hist" height="180" class="w-full"></canvas>
+        <template x-if="sim">
+          <div class="grid grid-cols-5 gap-2 mt-3 text-center text-xs font-mono">
+            <div class="badge rounded p-2"><div class="text-slate-500">p10</div><div x-text="sim.p10"></div></div>
+            <div class="badge rounded p-2"><div class="text-slate-500">median</div><div x-text="sim.median_final"></div></div>
+            <div class="badge rounded p-2"><div class="text-slate-500">mean</div><div x-text="sim.mean_final.toFixed(2)"></div></div>
+            <div class="badge rounded p-2"><div class="text-slate-500">p90</div><div x-text="sim.p90"></div></div>
+            <div class="badge rounded p-2"><div class="text-slate-500">target</div><div class="text-blue-300" x-text="'≥'+sim.target"></div></div>
+          </div>
+        </template>
+        <p class="text-[11px] text-slate-600 mt-2">Emerald bars = runs that hit the target; the emerald area <em>is</em> P(success).</p>
+      </div>
+
+      <!-- Panel 3: Strategy verdict -->
+      <div class="card p-5">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="font-semibold">③ Strategy validation</h2>
+          <span class="text-[11px] text-slate-500 font-mono" x-text="badge('val')"></span>
+        </div>
+        <button class="btn-ghost px-4 py-1.5 text-sm rounded-lg mb-3" @click="validate()">Validate strategy</button>
+        <template x-if="validation">
+          <div>
+            <div class="flex items-center gap-3 mb-2">
+              <span class="px-3 py-1 rounded-full text-sm font-semibold" :class="validation.passed?'pill-pass':'pill-fail'"
+                    x-text="validation.passed ? 'ON TRACK' : 'REJECTED'"></span>
+              <span class="text-sm text-slate-400" x-text="pct(validation.p_success)+' vs '+pct(validation.threshold)+' needed'"></span>
+            </div>
+            <p class="text-sm text-slate-300 mb-1" x-show="validation.bottleneck_reason"><span class="text-slate-500">bottleneck:</span> <span x-text="validation.bottleneck_reason"></span></p>
+            <p class="text-sm text-slate-300 mb-3" x-show="validation.min_volume_for_threshold">
+              <span class="text-slate-500">to clear</span> <span x-text="pct(validation.threshold)"></span>:
+              <span class="text-blue-300 font-mono" x-text="'~'+validation.min_volume_for_threshold+' shots'"></span>
+              <span class="text-slate-500" x-show="activeGoal()"> (now <span x-text="activeGoal()?.n0_volume"></span>)</span>
+            </p>
+            <div class="space-y-2">
+              <template x-for="s in validation.suggestions" :key="s.kind">
+                <div class="rounded-lg border border-slate-800 p-2.5 flex items-center justify-between gap-3">
+                  <div>
+                    <span class="text-[10px] uppercase tracking-wide text-blue-400 font-mono" x-text="s.kind.replace('_',' ')"></span>
+                    <p class="text-xs text-slate-300" x-text="s.detail"></p>
+                  </div>
+                  <button class="btn-ghost text-xs px-2 py-1 rounded whitespace-nowrap" @click="applyFix(s)"
+                          x-show="s.kind!=='better_shot_type' && !(s.kind==='more_volume' && !validation.min_volume_for_threshold)">apply &amp; re-sim</button>
+                </div>
+              </template>
+            </div>
+          </div>
+        </template>
+      </div>
+
+      <!-- Panel 4: Outcome logging -->
+      <div class="card p-5">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="font-semibold">④ Log outcome → live Bayesian shift</h2>
+          <span class="text-[11px] text-slate-500 font-mono" x-text="badge('log')"></span>
+        </div>
+        <div class="grid grid-cols-2 gap-2 text-sm">
+          <label class="col-span-2 text-xs text-slate-400">shot type
+            <select class="w-full px-2 py-1.5 mt-1" x-model="logForm.shot_type_id">
+              <template x-for="opt in shotTypeOptions()" :key="opt.id">
+                <option :value="opt.id" x-text="opt.label"></option>
+              </template>
+            </select>
+          </label>
+          <label class="text-xs text-slate-400">attempts (n)
+            <input type="number" class="w-full px-2 py-1.5 mt-1" x-model.number="logForm.n_attempts" />
+          </label>
+          <label class="text-xs text-slate-400">successes (k)
+            <input type="number" class="w-full px-2 py-1.5 mt-1" x-model.number="logForm.k_successes" />
+          </label>
+        </div>
+        <button class="btn px-4 py-1.5 text-sm mt-3" @click="logOutcome()">Log &amp; update model</button>
+        <template x-if="lastLog">
+          <div class="mt-3 rounded-lg badge p-3 text-sm">
+            <div class="font-mono">
+              your rate: <span class="text-slate-400" x-text="pct(lastLog.before_mean)"></span>
+              → <span class="text-emerald-300 font-semibold" x-text="pct(lastLog.after_mean)"></span>
+              <span class="text-slate-500 text-xs">(population was <span x-text="pct(lastLog.before_mean)"></span>)</span>
+            </div>
+            <div class="font-mono mt-1">
+              forecast: <span class="text-slate-400" x-text="pct(lastLog.prev_p)"></span>
+              → <span :class="lastLog.last_sim.p_success>=activeGoal()?.threshold?'text-emerald-300':'text-rose-300'" x-text="pct(lastLog.last_sim.p_success)"></span>
+            </div>
+          </div>
+        </template>
+        <p class="text-[11px] text-slate-600 mt-2">Conjugate Beta update: α+=k, β+=(n−k). Your reply rate ≠ the population's.</p>
+      </div>
+
+      <!-- Panel 6: Persona + draft -->
+      <div class="card p-5">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="font-semibold">⑥ Persona / digital twin</h2>
+          <span class="text-[11px] text-slate-500 font-mono" x-text="badge('draft')"></span>
+        </div>
+        <div class="flex gap-1 mb-3">
+          <template x-for="c in ['professional','friends','family']" :key="c">
+            <button class="px-3 py-1 text-xs rounded-lg border"
+                    :class="personaTab===c ? 'border-blue-500 text-blue-300' : 'border-slate-700 text-slate-400'"
+                    @click="personaTab=c" x-text="c"></button>
+          </template>
+        </div>
+        <template x-if="state.personas && state.personas[personaTab]">
+          <div class="text-[11px] font-mono text-slate-400 grid grid-cols-2 gap-x-4 gap-y-0.5 mb-3">
+            <div>formality <span class="text-slate-200" x-text="state.personas[personaTab].formality"></span></div>
+            <div>warmth <span class="text-slate-200" x-text="state.personas[personaTab].warmth"></span></div>
+            <div>directness <span class="text-slate-200" x-text="state.personas[personaTab].directness"></span></div>
+            <div>emoji_rate <span class="text-slate-200" x-text="state.personas[personaTab].emoji_rate"></span></div>
+            <div class="col-span-2 text-slate-500">avoids: <span x-text="(state.personas[personaTab].donts||[]).join(', ')"></span></div>
+          </div>
+        </template>
+        <div class="grid grid-cols-3 gap-2 text-sm mb-2">
+          <select class="px-2 py-1.5" x-model="draftForm.shot_type_id">
+            <template x-for="opt in shotTypeOptions()" :key="opt.id">
+              <option :value="opt.id" x-text="opt.label"></option>
+            </template>
+          </select>
+          <select class="px-2 py-1.5" x-model="draftForm.subcluster">
+            <option value="close">close</option><option value="normal">normal</option><option value="acquaintance">acquaintance</option>
+          </select>
+          <input class="px-2 py-1.5" placeholder="name" x-model="draftForm.name" />
+        </div>
+        <button class="btn px-4 py-1.5 text-sm" @click="makeDraft()" x-text="'Draft in '+personaTab+' voice'"></button>
+        <template x-if="draft">
+          <div class="mt-3 rounded-lg badge p-3">
+            <div class="text-xs text-slate-500 mb-1" x-show="draft.subject">Subject: <span class="text-slate-300" x-text="draft.subject"></span></div>
+            <pre class="text-sm whitespace-pre-wrap font-sans text-slate-200" x-text="draft.body"></pre>
+          </div>
+        </template>
+      </div>
+
+      <!-- Panel 7: Orchestrator trace -->
+      <div class="card p-5">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="font-semibold">⑦ Orchestrator routing trace</h2>
+          <span class="text-[11px] text-slate-500 font-mono" x-text="badge('orch')"></span>
+        </div>
+        <div class="flex gap-2 mb-3">
+          <input class="flex-1 px-2 py-1.5 text-sm" x-model="orchReq" placeholder="ask anything: 'is my plan realistic?', 'what next?', 'draft the email'" @keydown.enter="orchestrate()" />
+          <button class="btn px-3 py-1.5 text-sm" @click="orchestrate()">Route</button>
+        </div>
+        <template x-if="trace">
+          <div>
+            <div class="text-xs font-mono text-slate-400 mb-2">
+              cluster <span class="text-blue-300" x-text="trace.cluster"></span> ·
+              <span x-text="trace.elapsed_ms+'ms'"></span>
+            </div>
+            <div class="flex flex-wrap items-center gap-1.5">
+              <span class="badge px-2 py-1 rounded text-xs font-mono text-slate-400" x-text="'request'"></span>
+              <template x-for="a in trace.agents" :key="a.name">
+                <div class="flex items-center gap-1.5">
+                  <span class="text-slate-600">→</span>
+                  <span class="px-2 py-1 rounded text-xs font-mono border border-slate-700"
+                        :title="a.action+' · '+a.elapsed_ms+'ms'">
+                    <span class="text-blue-300" x-text="a.name"></span>
+                    <span class="text-slate-500" x-text="' · '+a.output_summary"></span>
+                  </span>
+                </div>
+              </template>
+            </div>
+          </div>
+        </template>
+      </div>
+    </section>
+  </main>
+
+  <footer class="px-6 py-4 text-center text-[11px] text-slate-600 font-mono border-t border-slate-800">
+    fully offline · numpy Monte-Carlo · one JSON file is the backend → <span class="text-slate-500">data/store.json</span>
+  </footer>
+</body>
+</html>
