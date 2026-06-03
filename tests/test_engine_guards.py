@@ -12,7 +12,7 @@ import pytest
 from osfl.engine.bayes import update_posterior
 from osfl.engine.funnel import simulate_funnel
 from osfl.engine.priority import shot_score, urgency_factor
-from osfl.engine.strategy import min_volume_for_threshold, validate_strategy
+from osfl.engine.strategy import min_volume_for_threshold, point_estimate_p, validate_strategy
 
 
 def test_update_posterior_rejects_k_greater_than_n():
@@ -51,3 +51,10 @@ def test_simulate_funnel_zero_volume_is_certain_failure():
 
 def test_shot_score_is_the_product_of_its_four_factors():
     assert shot_score(0.5, 0.4, 0.8, 1.0) == pytest.approx(0.16)
+
+
+def test_point_estimate_p_multiplies_stage_means_not_sums_them():
+    # The 3-stage job funnel: P(>=1) uses the PRODUCT of stage means (0.08*0.40*0.25 =
+    # 0.008), not their sum (0.73). Pins the closed form and kills a sum-for-prod mutant.
+    stages = [(2.0, 23.0), (4.0, 6.0), (2.5, 7.5)]
+    assert point_estimate_p(stages, 60, 1) == pytest.approx(0.3824, abs=1e-3)

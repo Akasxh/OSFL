@@ -93,4 +93,4 @@ warn_return_any = false
 [tool.mutmut]
 paths_to_mutate = "osfl/engine/"
 tests_dir = "tests/"
-runner = "uv run pytest tests/test_engine.py tests/test_engine_props.py -q -x"
+runner = "uv run pytest tests/test_engine.py tests/test_engine_props.py tests/test_engine_guards.py -q -x"
