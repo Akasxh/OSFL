@@ -1,8 +1,8 @@
 """Vectorized Beta-Binomial funnel Monte Carlo.
 
-Key modelling choice: p_i is sampled PER RUN (rng.beta(a,b,size=runs)), not once. That
-injects *parameter uncertainty* on top of binomial sampling noise, which is exactly why the
-MC P(>=1) (~0.32 at seed 42) sits BELOW the fixed-p closed form (0.382) for a near-floor target.
+Key modelling choice: p_i is sampled PER RUN (rng.beta(a, b, size=runs)), not once, which
+injects parameter uncertainty on top of binomial noise. This is why the MC P(>=1) sits BELOW
+the fixed-p closed form for a near-floor target — a deliberate choice, see docs/adr/0001.
 """
 
 from __future__ import annotations

@@ -1,103 +1,66 @@
 # OSFL — OS For Life
 
+[![CI](https://github.com/Akasxh/OSFL/actions/workflows/ci.yml/badge.svg)](https://github.com/Akasxh/OSFL/actions/workflows/ci.yml)
+
 > **outcome = probability × volume**
 
-OSFL ("OS For Life") turns a high-level goal ("land a job", "raise a seed round", "get fit") into a
-**Beta-Binomial funnel** and forecasts your odds with a vectorized numpy **Monte-Carlo engine**
-before prescribing how many shots to take. Log real results and a conjugate **Bayesian update**
-sharpens the model to *your* rates — not population averages. A digital-twin **persona layer**
-(three skill files: professional / friends / family) drafts the actual messages in your voice.
+OSFL turns a high-level goal ("land a job", "raise a seed round", "get fit") into a
+**Beta-Binomial funnel** and forecasts your real odds with a vectorized NumPy
+**Monte-Carlo engine** — then tells you how many shots it actually takes. Log real
+results and a conjugate **Bayesian update** sharpens the model to *your* rates, not
+population averages. A digital-twin **persona layer** drafts the messages in your voice.
 
-Fully offline. No API keys. One JSON file is the whole backend, and one static dashboard shows it all.
+**Status:** working MVP. The deterministic engine + API + dashboard are stable and
+covered by the suite; the optional LLM layer is strictly additive (the app runs fully
+offline without a key); broader features are tracked in [`ROADMAP.md`](ROADMAP.md).
 
-## Run (one command)
-
-```bash
-uv sync                                              # install deps into a venv
-uv run uvicorn osfl.app:app --reload --port 8000
-# then open http://127.0.0.1:8000/
-```
-
-Or via the project script:
+## Quick start
 
 ```bash
-uv run osfl      # same thing, no --reload
+uv sync                                              # install into a venv (uses the locked deps)
+uv run uvicorn osfl.app:app --reload --port 8000     # then open http://127.0.0.1:8000/
+# or, no --reload:  uv run osfl
 ```
-
-Run the tests:
 
 ```bash
-uv run --extra dev pytest -q
+uv run pytest -q          # run the test suite
+uv run ruff check . && uv run mypy osfl   # lint + type-check (what CI runs)
 ```
 
-Inspect the entire backend at any time:
-
-```bash
-cat data/store.json
-```
-
-## Optional: turn on the LLM (you-voiced agents)
-
-OSFL runs **fully offline** by default. Add an OpenAI key to activate the language agents — the
-Monte-Carlo / Bayesian engine stays deterministic either way.
-
-```bash
-cp .env.example .env        # then put your key in .env (it is gitignored)
-# .env:
-#   OPENAI_API_KEY=sk-...
-#   OPENAI_MODEL=gpt-4o-mini
-```
-
-With a key set, three things upgrade from deterministic fallbacks to real model calls:
-
-- **You-voiced drafting** — the persona skill files (`personas/*.md`) become the system prompt, so
-  drafts sound like *you* in the right cluster. Toggle per-draft, or force the template with `use_llm:false`.
-- **Scenario advisor** — ask anything ("which goal should I prioritize?") and get an answer grounded
-  in your actual goals + forecasts, in your voice.
-- **Goal decomposition** — type any goal ("get my first novel published") and the planner builds a
-  realistic funnel, which the numpy engine then forecasts.
-
-Without a key these degrade gracefully (deterministic templates / archetypes / a "set a key" note),
-and the dashboard shows an `LLM off · offline templates` badge.
+The entire backend is one JSON file — after the first run, inspect it any time with
+`cat data/store.json`.
 
 ## The three "aha" moments
 
-1. **Funnels punish you nonlinearly.** 60 job applications through an 8% → 40% → 25% funnel is only a
-   **38%** shot at one offer. To hit 80% you need **201** applications, not the ~126 you'd naively guess.
-2. **Your reply rate ≠ the population's.** Log "5 replies from 30 emails" and your cold-email posterior
-   jumps from the 8% prior to **12.7%** — and every future forecast uses *your* number.
-3. **One queue for a whole life.** Job, fundraise, and fitness goals compete in a single ranked list
-   scored by `impact × urgency × long-term-value × marginal-P-gain`.
+1. **Funnels punish you nonlinearly.** 60 applications through an 8% → 40% → 25% funnel
+   is only a **38%** shot at one offer (closed form). To hit 80% you need **201**
+   applications, not the ~126 you'd naively guess. *(The dashboard shows a lower
+   uncertainty-adjusted ~32% — that gap is deliberate; see
+   [ADR 0001](docs/adr/0001-monte-carlo-below-closed-form.md).)*
+2. **Your reply rate ≠ the population's.** Log "5 replies from 30 emails" and your
+   cold-email posterior jumps from the 8% prior to **12.7%** — every future forecast
+   then uses *your* number.
+3. **One queue for a whole life.** Job, fundraise, and fitness goals compete in a single
+   ranked list scored by `impact × urgency × long-term-value × marginal-P-gain`.
 
-See [`ARCHITECTURE`](#architecture) below for the full module map.
+## Optional: turn on the LLM
 
-## Architecture
+OSFL runs **fully offline** by default. Add an OpenAI key to upgrade three language
+agents — you-voiced drafting, the scenario advisor, and free-text goal decomposition —
+from deterministic fallbacks to real model calls. The Monte-Carlo / Bayesian engine
+never calls an LLM; numbers stay deterministic either way.
 
-```
-osfl/
-  models.py          pydantic domain models + DTOs
-  store.py           JSON-file persistence (data/store.json)
-  engine/            pure numpy math (no I/O, deterministic given a seed)
-    funnel.py        Beta-Binomial funnel Monte Carlo
-    habit.py         habit / adherence Monte Carlo
-    bayes.py         conjugate Beta updating
-    strategy.py      bottleneck + min-volume + suggestions
-    priority.py      cross-goal priority scoring
-    stats.py         summary statistics + histogram
-  persona/           digital-twin layer
-    loader.py        parse personas/*.md front-matter
-    drafter.py       deterministic, offline "you-voiced" drafting
-    voice.py         build LLM prompts from the persona skill files
-  llm.py             optional OpenAI wrapper (graceful fallback when no key)
-  agents.py          Planner / Simulator / Persona / Followup / Wellbeing / DecisionAdvisor / Advisor / Memory
-  orchestrator.py    routes a request → cluster + agent-set, emits a watchable trace
-  seed.py            three demo goals with verified priors
-  app.py             FastAPI routes + static dashboard
-personas/            professional.md · friends.md · family.md  (the skill files)
-static/              index.html · app.js  (dashboard) + vendored tailwind.js · alpine.min.js
+```bash
+cp .env.example .env        # then set OPENAI_API_KEY in .env (it is gitignored)
 ```
 
-The Monte-Carlo / Bayesian core runs with **zero network access** (Tailwind and Alpine are vendored
-into `static/`), and the LLM layer is strictly additive on top. The 25-test suite pins every headline
-number (`0.382` / `201` / `150` / posterior `(7,48)` / priority ranking), the persona guarantees, and
-the offline LLM fallbacks.
+## How it fits together
+
+Entry point `osfl/app.py` (FastAPI + the static dashboard). The pure, deterministic math
+lives in `osfl/engine/` (NumPy, no I/O); the digital-twin layer in `osfl/persona/`; one
+JSON file is the whole store (`osfl/store.py`). Full component diagram and request flow:
+[`ARCHITECTURE.md`](ARCHITECTURE.md). Agent-facing build/test commands: [`AGENTS.md`](AGENTS.md).
+
+## License
+
+MIT — see [`LICENSE`](LICENSE).
