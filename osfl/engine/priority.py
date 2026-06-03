@@ -30,6 +30,8 @@ def marginal_p_gain(p_now: float, p_plus_one: float) -> float:
 
 
 def urgency_factor(days_to_deadline: float, horizon: float = 60.0) -> float:
+    if horizon <= 0:  # no horizon to discount against → treat as maximally urgent
+        return 1.0
     return float(min(max(1.0 - days_to_deadline / horizon, 0.05), 1.0))
 
 

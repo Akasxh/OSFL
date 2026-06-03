@@ -10,6 +10,8 @@ def beta_from_mean(mean: float, strength: float) -> tuple[float, float]:
 
 def update_posterior(prior: tuple[float, float], k: int, n: int) -> tuple[float, float]:
     """Conjugate update: k successes of n trials -> (alpha+k, beta+(n-k))."""
+    if not (0 <= k <= n):
+        raise ValueError(f"need 0 <= k <= n, got k={k}, n={n}")
     a, b = prior
     return (a + k, b + (n - k))
 

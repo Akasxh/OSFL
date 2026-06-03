@@ -106,7 +106,7 @@ def min_volume_for_threshold(
     while _binom_sf_ge(hi, prod_p, T) < threshold:
         hi *= 2
         if hi > 5_000_000:
-            return hi
+            return 10**9  # unreachable within a sane volume cap — same infeasible sentinel as above
     lo = T
     while lo < hi:
         mid = (lo + hi) // 2
@@ -125,6 +125,8 @@ def validate_strategy(
     runs: int = 10000,
     seed: int | None = None,
 ) -> dict:
+    if not stages:
+        raise ValueError("validate_strategy requires at least one stage")
     sim = simulate_funnel(n0, stages, T, runs=runs, seed=seed)
     bn = find_bottleneck(n0, stages, T)
     min_vol = min_volume_for_threshold(stages, T, threshold)
