@@ -9,10 +9,10 @@ from __future__ import annotations
 
 import secrets
 import time
-from datetime import datetime, timezone
-from typing import Literal, Optional
+from datetime import UTC, date, datetime
+from typing import Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator
 
 Cluster = Literal["professional", "friends", "family"]
 Subcluster = Literal["close", "normal", "acquaintance"]
@@ -25,7 +25,22 @@ def new_id() -> str:
 
 
 def utcnow_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
+
+
+def _as_iso_date(v: str) -> str:
+    """Reject a non-ISO deadline at the boundary (422) instead of failing deep in an agent (500)."""
+    try:
+        date.fromisoformat(v[:10])
+    except ValueError as err:
+        raise ValueError("deadline must be an ISO date (YYYY-MM-DD)") from err
+    return v
+
+
+class _StrictModel(BaseModel):
+    """Base for request DTOs: reject unknown/typo'd fields instead of silently dropping them."""
+
+    model_config = ConfigDict(extra="forbid")
 
 
 # --------------------------------------------------------------------------- #
@@ -43,9 +58,9 @@ class ShotType(BaseModel):
     description: str = ""
     alpha: float = Field(default=1.0, gt=0.0)
     beta: float = Field(default=1.0, gt=0.0)
-    user_alpha: Optional[float] = Field(default=None, gt=0.0)
-    user_beta: Optional[float] = Field(default=None, gt=0.0)
-    persona: Optional[Cluster] = None
+    user_alpha: float | None = Field(default=None, gt=0.0)
+    user_beta: float | None = Field(default=None, gt=0.0)
+    persona: Cluster | None = None
 
     def effective_prior(self) -> tuple[float, float]:
         """User posterior if it exists, else the population prior."""
@@ -75,7 +90,7 @@ class SimulationResult(BaseModel):
 
     goal_id: str
     runs: int = 10000
-    seed: Optional[int] = None
+    seed: int | None = None
     p_success: float = 0.0
     mean_final: float = 0.0
     median_final: float = 0.0
@@ -84,7 +99,7 @@ class SimulationResult(BaseModel):
     p90: float = 0.0
     hist_bins: list[int] = Field(default_factory=list)
     hist_edges: list[float] = Field(default_factory=list)
-    per_stage_drop: Optional[list[float]] = None
+    per_stage_drop: list[float] | None = None
     target: int = 1
     computed_at: str = Field(default_factory=utcnow_iso)
 
@@ -99,7 +114,7 @@ class Goal(BaseModel):
     deadline: str  # ISO date
     created_at: str = Field(default_factory=utcnow_iso)
     status: Literal["active", "met", "at_risk", "archived"] = "active"
-    impact: float = 0.5          # 0..1 — how much this goal matters
+    impact: float = 0.5  # 0..1 — how much this goal matters
     long_term_value: float = 0.5  # 0..1 — durable value weight
 
     # funnel
@@ -108,11 +123,11 @@ class Goal(BaseModel):
     target_successes: int = 1
 
     # habit
-    shot_type_id: Optional[str] = None
+    shot_type_id: str | None = None
     target_sessions: int = 0
     horizon_days: int = 0
 
-    last_sim: Optional[SimulationResult] = None
+    last_sim: SimulationResult | None = None
 
 
 class Shot(BaseModel):
@@ -120,12 +135,12 @@ class Shot(BaseModel):
 
     id: str = Field(default_factory=new_id)
     goal_id: str
-    stage_id: Optional[str] = None
+    stage_id: str | None = None
     shot_type_id: str
-    persona: Optional[Cluster] = None
+    persona: Cluster | None = None
     status: Literal["suggested", "drafted", "sent"] = "suggested"
     created_at: str = Field(default_factory=utcnow_iso)
-    draft_id: Optional[str] = None
+    draft_id: str | None = None
 
 
 class Outcome(BaseModel):
@@ -134,15 +149,15 @@ class Outcome(BaseModel):
     id: str = Field(default_factory=new_id)
     goal_id: str
     shot_type_id: str
-    stage_id: Optional[str] = None
+    stage_id: str | None = None
     n_attempts: int
     k_successes: int
     logged_at: str = Field(default_factory=utcnow_iso)
-    note: Optional[str] = None
+    note: str | None = None
 
     @field_validator("k_successes")
     @classmethod
-    def _k_le_n(cls, v: int, info):
+    def _k_le_n(cls, v: int, info: ValidationInfo) -> int:
         n = info.data.get("n_attempts")
         if n is not None and not (0 <= v <= n):
             raise ValueError("k_successes must satisfy 0 <= k <= n_attempts")
@@ -155,7 +170,7 @@ class PersonaDraft(BaseModel):
     id: str = Field(default_factory=new_id)
     shot_type_id: str
     persona: Cluster
-    subject: Optional[str] = None
+    subject: str | None = None
     body: str
     engine: Literal["template", "llm"] = "template"
     params_used: dict = Field(default_factory=dict)
@@ -189,8 +204,8 @@ class QueueItem(BaseModel):
     shot_type_id: str
     goal_id: str
     goal_title: str = ""
-    stage_id: Optional[str] = None
-    persona: Optional[Cluster] = None
+    stage_id: str | None = None
+    persona: Cluster | None = None
     score: float = 0.0
     impact: float = 0.0
     urgency: float = 0.0
@@ -210,9 +225,9 @@ class ValidationReport(BaseModel):
     passed: bool
     p_success: float
     threshold: float
-    bottleneck_stage_id: Optional[str] = None
+    bottleneck_stage_id: str | None = None
     bottleneck_reason: str = ""
-    min_volume_for_threshold: Optional[int] = None
+    min_volume_for_threshold: int | None = None
     suggestions: list[Suggestion] = Field(default_factory=list)
 
 
@@ -243,17 +258,17 @@ class Followup(BaseModel):
     goal_id: str
     goal_title: str = ""
     shot_type_id: str
-    stage_id: Optional[str] = None
+    stage_id: str | None = None
     due_in_days: int
     reason: str
-    last_outcome_at: Optional[str] = None
+    last_outcome_at: str | None = None
 
 
 # --------------------------------------------------------------------------- #
 # Request DTOs
 # --------------------------------------------------------------------------- #
-class GoalCreate(BaseModel):
-    title: str
+class GoalCreate(_StrictModel):
+    title: str = Field(min_length=1, max_length=200)
     kind: Literal["funnel", "habit"] = "funnel"
     deadline: str
     threshold: float = Field(default=0.7, ge=0.0, le=0.999)
@@ -261,48 +276,66 @@ class GoalCreate(BaseModel):
     long_term_value: float = Field(default=0.5, ge=0.0, le=1.0)
     n0_volume: int = Field(default=0, ge=0, le=1_000_000)
     target_successes: int = Field(default=1, ge=1, le=10_000)
-    shot_type_id: Optional[str] = None
+    shot_type_id: str | None = None
     target_sessions: int = Field(default=0, ge=0, le=100_000)
     horizon_days: int = Field(default=0, ge=0, le=100_000)
 
-
-class GoalPatch(BaseModel):
-    n0_volume: Optional[int] = Field(default=None, ge=0, le=1_000_000)
-    deadline: Optional[str] = None
-    target_successes: Optional[int] = Field(default=None, ge=1, le=10_000)
-    threshold: Optional[float] = Field(default=None, ge=0.0, le=0.999)
-    target_sessions: Optional[int] = Field(default=None, ge=0, le=100_000)
-    status: Optional[Literal["active", "met", "at_risk", "archived"]] = None
+    @field_validator("deadline")
+    @classmethod
+    def _iso_deadline(cls, v: str) -> str:
+        return _as_iso_date(v)
 
 
-class OutcomeCreate(BaseModel):
+class GoalPatch(_StrictModel):
+    n0_volume: int | None = Field(default=None, ge=0, le=1_000_000)
+    deadline: str | None = None
+    target_successes: int | None = Field(default=None, ge=1, le=10_000)
+    threshold: float | None = Field(default=None, ge=0.0, le=0.999)
+    target_sessions: int | None = Field(default=None, ge=0, le=100_000)
+    status: Literal["active", "met", "at_risk", "archived"] | None = None
+
+    @field_validator("deadline")
+    @classmethod
+    def _iso_deadline(cls, v: str | None) -> str | None:
+        return _as_iso_date(v) if v is not None else v
+
+
+class OutcomeCreate(_StrictModel):
     shot_type_id: str
-    stage_id: Optional[str] = None
-    n_attempts: int
-    k_successes: int
-    note: Optional[str] = None
+    stage_id: str | None = None
+    n_attempts: int = Field(ge=0, le=1_000_000)
+    k_successes: int = Field(ge=0, le=1_000_000)
+    note: str | None = Field(default=None, max_length=2000)
+
+    @field_validator("k_successes")
+    @classmethod
+    def _k_le_n(cls, v: int, info: ValidationInfo) -> int:
+        n = info.data.get("n_attempts")
+        if n is not None and not (0 <= v <= n):
+            raise ValueError("k_successes must satisfy 0 <= k <= n_attempts")
+        return v
 
 
-class SimRequest(BaseModel):
+class SimRequest(_StrictModel):
     runs: int = Field(default=10000, ge=1, le=1_000_000)
-    seed: Optional[int] = None
+    seed: int | None = None
 
 
-class DraftRequest(BaseModel):
+class DraftRequest(_StrictModel):
     shot_type_id: str
     persona: Cluster
     subcluster: Subcluster = "normal"
     context: dict = Field(default_factory=dict)
-    seed: Optional[int] = None
-    use_llm: Optional[bool] = None  # None = auto (LLM if a key is configured)
+    seed: int | None = None
+    use_llm: bool | None = None  # None = auto (LLM if a key is configured)
 
 
-class OrchestrateRequest(BaseModel):
-    request: str
-    goal_id: Optional[str] = None
+class OrchestrateRequest(_StrictModel):
+    request: str = Field(min_length=1, max_length=2000)
+    goal_id: str | None = None
 
 
-class AdviseRequest(BaseModel):
-    question: str
-    goal_id: Optional[str] = None
+class AdviseRequest(_StrictModel):
+    question: str = Field(min_length=1, max_length=2000)
+    goal_id: str | None = None
     persona: Cluster = "professional"
