@@ -5,6 +5,12 @@ __pycache__/
 data/store.json
 .playwright-mcp/
 
+# web (landing page) build artifacts
+node_modules/
+web/node_modules/
+web/dist/
+.vercel/
+
 # secrets — never commit
 .env
 .env.*

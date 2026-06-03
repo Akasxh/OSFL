@@ -1,0 +1,70 @@
+/* ============================================================
+   OSFL — "THE INSTRUMENT" design tokens
+   Warm bone paper (narrative) + violet-black instrument panels (live data).
+   ============================================================ */
+:root {
+  /* --- light editorial surface --- */
+  --paper: #f6f1e7;          /* warm bone background */
+  --paper-raised: #fbf8f1;   /* cards / sticky notes */
+  --ink: #1a1726;            /* near-black, violet undertone (never pure #000) */
+  --ink-soft: #4a4458;       /* muted body */
+  --ink-faint: #8b8398;      /* labels */
+  --line: #e2d9c8;           /* hairline rules on paper */
+  --line-strong: #d4c8b2;
+
+  /* --- brand --- */
+  --primary: #4338ca;        /* indigo "twin" — flat fills / 2px strokes only */
+  --primary-bright: #5b4fe9; /* hover / live glow */
+  --accent: #f4a52b;         /* signal amber — "a shot fired" */
+  --accent-deep: #d6841a;
+
+  /* --- deep-ink instrument surface (phone screen + sim panel) --- */
+  --panel-deep: #15121f;     /* violet-black */
+  --panel-raised: #211c30;
+  --panel-line: #332b49;
+  --panel-ink: #ede9f5;
+  --panel-muted: #8b81a6;
+
+  /* --- dot-field semantics (shared) --- */
+  --win: #3fd17a;            /* green dots are wins */
+  --win-soft: #1f7a47;       /* win on light bg */
+  --loss: #e5484d;           /* rejection */
+  --loss-soft: #c2363b;
+  --miss-ink: #6e6580;       /* unresolved shot on deep */
+  --miss-paper: #c9bfa8;     /* unresolved shot on paper */
+
+  /* --- type --- */
+  --font-display: "Instrument Serif", "Times New Roman", serif;
+  --font-ui: "Inter Tight", -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* --- radii --- */
+  --r-sm: 8px;
+  --r-md: 14px;
+  --r-lg: 22px;
+  --r-pill: 999px;
+
+  /* --- motion --- */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
+
+  /* --- layout --- */
+  --maxw: 1180px;
+  --gutter: clamp(20px, 5vw, 64px);
+}
+
+/* HARD RULE: Instrument Serif has no real bold — never let it synth-bold.
+   Emphasis comes from SIZE + italic, never weight. */
+.serif,
+h1.display,
+h2.display,
+.display {
+  font-family: var(--font-display);
+  font-weight: 400 !important;
+  font-style: normal;
+}
+.display em,
+.serif em {
+  font-style: italic;
+  font-weight: 400 !important;
+}
