@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
+from typing import Any
 
 import numpy as np
 
@@ -124,7 +125,7 @@ def validate_strategy(
     threshold: float = 0.7,
     runs: int = 10000,
     seed: int | None = None,
-) -> dict:
+) -> dict[str, Any]:
     if not stages:
         raise ValueError("validate_strategy requires at least one stage")
     sim = simulate_funnel(n0, stages, T, runs=runs, seed=seed)

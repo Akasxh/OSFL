@@ -10,7 +10,7 @@ from __future__ import annotations
 import secrets
 import time
 from datetime import UTC, date, datetime
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator
 
@@ -173,7 +173,7 @@ class PersonaDraft(BaseModel):
     subject: str | None = None
     body: str
     engine: Literal["template", "llm"] = "template"
-    params_used: dict = Field(default_factory=dict)
+    params_used: dict[str, Any] = Field(default_factory=dict)
     created_at: str = Field(default_factory=utcnow_iso)
 
 
@@ -242,7 +242,7 @@ class OrchestratorTrace(BaseModel):
     request: str
     cluster: str
     agents: list[AgentStep] = Field(default_factory=list)
-    result: dict = Field(default_factory=dict)
+    result: dict[str, Any] = Field(default_factory=dict)
     elapsed_ms: int = 0
 
 
@@ -325,7 +325,7 @@ class DraftRequest(_StrictModel):
     shot_type_id: str
     persona: Cluster
     subcluster: Subcluster = "normal"
-    context: dict = Field(default_factory=dict)
+    context: dict[str, Any] = Field(default_factory=dict)
     seed: int | None = None
     use_llm: bool | None = None  # None = auto (LLM if a key is configured)
 

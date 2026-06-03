@@ -76,13 +76,7 @@ allowed-confusables = ["×", "→", "≥", "≤", "≈"]
 [tool.mypy]
 python_version = "3.12"
 files = ["osfl"]
-check_untyped_defs = true
-disallow_untyped_defs = true
-disallow_incomplete_defs = true
-no_implicit_optional = true
-warn_redundant_casts = true
-warn_unused_ignores = true
-warn_return_any = true
+strict = true
 
 [[tool.mypy.overrides]]
 # numpy's typed API leaks Any through array arithmetic; the engine is covered

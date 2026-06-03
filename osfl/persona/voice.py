@@ -7,6 +7,8 @@ into a user prompt, and splits an optional "Subject:" line back out of the model
 
 from __future__ import annotations
 
+from typing import Any
+
 from ..models import PersonaParams
 
 _PURPOSE = {
@@ -42,7 +44,7 @@ Rules:
 - Stay close to the target length and the relationship register."""
 
 
-def voice_user_prompt(skeleton: str, context: dict) -> str:
+def voice_user_prompt(skeleton: str, context: dict[str, Any]) -> str:
     purpose = _PURPOSE.get(skeleton, "message")
     ctx = {
         k: v for k, v in (context or {}).items() if k not in ("shot_type_id", "goal_id", "stage_id", "skeleton") and v

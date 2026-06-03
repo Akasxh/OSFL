@@ -78,7 +78,7 @@ class Orchestrator:
                 return cast("Cluster", raw["persona"])
         return "professional"
 
-    def route(self, intent: str, payload: dict) -> OrchestratorTrace:
+    def route(self, intent: str, payload: dict[str, Any]) -> OrchestratorTrace:
         t0 = perf_counter()
         goal: Goal | None = None
         if payload.get("goal_id"):
@@ -86,7 +86,7 @@ class Orchestrator:
             goal = Goal(**raw) if raw else None
         cluster = self._cluster_for(payload, goal)
         steps: list[AgentStep] = []
-        result: dict = {}
+        result: dict[str, Any] = {}
 
         for name in self.ROUTES.get(intent, ["Planner"]):
             s = perf_counter()

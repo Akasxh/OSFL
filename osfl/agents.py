@@ -255,7 +255,7 @@ class DecisionAdvisor:
 
 
 class Planner:
-    ARCHETYPES: ClassVar[dict[str, dict]] = {
+    ARCHETYPES: ClassVar[dict[str, dict[str, Any]]] = {
         "job": {
             "kind": "funnel",
             "n0": 60,

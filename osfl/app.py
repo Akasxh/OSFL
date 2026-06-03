@@ -10,6 +10,7 @@ from __future__ import annotations
 import logging
 import os
 from pathlib import Path
+from typing import Any
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
@@ -73,7 +74,7 @@ def _goal(gid: str) -> Goal:
     return Goal(**raw)
 
 
-def _state() -> dict:
+def _state() -> dict[str, Any]:
     goals = [Goal(**g) for g in store.list("goals")]
     return {
         "goals": goals,
@@ -107,7 +108,7 @@ def index() -> FileResponse:
 # State / read
 # --------------------------------------------------------------------------- #
 @app.get("/api/state")
-def get_state() -> dict:
+def get_state() -> dict[str, Any]:
     return _state()
 
 
@@ -127,7 +128,7 @@ def list_shot_types() -> list[ShotType]:
 
 
 @app.get("/api/personas")
-def get_personas() -> dict:
+def get_personas() -> dict[str, Any]:
     return loader.all()
 
 
@@ -193,7 +194,7 @@ def validate_goal(gid: str, body: SimRequest) -> ValidationReport:
 
 
 @app.post("/api/goals/{gid}/outcomes")
-def log_outcome(gid: str, body: OutcomeCreate) -> dict:
+def log_outcome(gid: str, body: OutcomeCreate) -> dict[str, Any]:
     g = _goal(gid)
     raw_st = store.get("shot_types", body.shot_type_id)
     if raw_st is None:
@@ -242,12 +243,12 @@ def post_orchestrate(body: OrchestrateRequest) -> OrchestratorTrace:
 
 
 @app.get("/api/llm/status")
-def llm_status() -> dict:
+def llm_status() -> dict[str, Any]:
     return {"available": llm.available, "model": llm.model if llm.available else None}
 
 
 @app.post("/api/advise")
-def post_advise(body: AdviseRequest) -> dict:
+def post_advise(body: AdviseRequest) -> dict[str, Any]:
     goal = _goal(body.goal_id) if body.goal_id else None
     return orch.scenario.advise(body.question, goal, body.persona)
 

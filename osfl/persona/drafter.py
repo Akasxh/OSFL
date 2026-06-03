@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+from typing import Any
 
 from ..models import PersonaDraft, PersonaParams
 
@@ -17,7 +18,7 @@ from ..models import PersonaDraft, PersonaParams
 # Message skeletons per shot type. {slots} are filled from context (safe defaults
 # below); the trailing CTA is chosen by directness.
 # --------------------------------------------------------------------------- #
-SKELETONS: dict[str, dict] = {
+SKELETONS: dict[str, dict[str, Any]] = {
     "apply": {
         "email": True,
         "subject": "Application for the {role} role",
@@ -90,7 +91,7 @@ _WARMTH_HIGH = "Hope you're doing really well."
 _WARMTH_MED = "Hope you're good!"
 
 
-class _Slots(dict):
+class _Slots(dict[str, str]):
     def __missing__(self, key: str) -> str:  # never KeyError on a missing slot
         return _DEFAULTS.get(key, "")
 
@@ -144,7 +145,7 @@ def draft(
     shot_type: str,
     params: PersonaParams,
     subcluster: str,
-    context: dict,
+    context: dict[str, Any],
     seed: int,
 ) -> PersonaDraft:
     sk = SKELETONS.get(shot_type, SKELETONS["ask"])

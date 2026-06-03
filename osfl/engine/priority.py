@@ -9,6 +9,7 @@ at 1.0 — otherwise tiny absolute +1-shot deltas would crush every score toward
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 
 @dataclass
@@ -39,7 +40,7 @@ def shot_score(impact: float, urgency: float, ltv: float, mpg_norm: float) -> fl
     return impact * urgency * ltv * mpg_norm
 
 
-def rank_queue(candidates: list[dict], horizon: float = 60.0) -> list[RankedShot]:
+def rank_queue(candidates: list[dict[str, Any]], horizon: float = 60.0) -> list[RankedShot]:
     """Each candidate dict supplies: goal_id, shot_type_id, impact, ltv, days_to_deadline,
     p_now, p_plus_one, and optionally stage_id, persona, rationale."""
     raw = [marginal_p_gain(c["p_now"], c["p_plus_one"]) for c in candidates]
