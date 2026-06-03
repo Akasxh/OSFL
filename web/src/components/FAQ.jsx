@@ -33,7 +33,7 @@ export default function FAQ() {
   return (
     <section id="faq" className="sec">
       <div className="wrap">
-        <SectionHeading label="§06 / FAQ" title={<>The skeptical questions, <em>answered.</em></>} />
+        <SectionHeading label="§08 / FAQ" title={<>The skeptical questions, <em>answered.</em></>} />
         <div style={{ marginTop: 36, borderTop: "1px solid var(--line)" }}>
           {QA.map(([q, a], i) => (
             <Item key={q} q={q} a={a} open={open === i} onClick={() => setOpen(open === i ? -1 : i)} />

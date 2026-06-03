@@ -3,14 +3,14 @@
    Warm bone paper (narrative) + violet-black instrument panels (live data).
    ============================================================ */
 :root {
-  /* --- light editorial surface --- */
-  --paper: #f6f1e7;          /* warm bone background */
-  --paper-raised: #fbf8f1;   /* cards / sticky notes */
-  --ink: #1a1726;            /* near-black, violet undertone (never pure #000) */
-  --ink-soft: #4a4458;       /* muted body */
-  --ink-faint: #8b8398;      /* labels */
-  --line: #e2d9c8;           /* hairline rules on paper */
-  --line-strong: #d4c8b2;
+  /* --- light surface · "Paper White / Slate Ink" (cool, crisp, not warm-cream) --- */
+  --paper: #ffffff;          /* pure paper white */
+  --paper-raised: #f4f5f7;   /* cool light-gray card (sits one step down from white) */
+  --ink: #14161d;            /* near-black, faint cool slate (zero violet undertone) */
+  --ink-soft: #444a57;       /* cool slate body */
+  --ink-faint: #8a909e;      /* cool gray labels */
+  --line: #e6e8ec;           /* cool neutral hairline */
+  --line-strong: #d2d6dd;
 
   /* --- brand --- */
   --primary: #4338ca;        /* indigo "twin" — flat fills / 2px strokes only */
@@ -67,4 +67,12 @@ h2.display,
 .serif em {
   font-style: italic;
   font-weight: 400 !important;
+}
+
+/* loud, energetic numerals/indices come from Inter Tight (NOT a serif bold) */
+.stat {
+  font-family: var(--font-ui);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
 }

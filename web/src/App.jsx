@@ -1,6 +1,8 @@
 import Nav from "./components/Nav.jsx";
 import Hero from "./components/Hero.jsx";
 import Marquee from "./components/Marquee.jsx";
+import TheQueue from "./components/TheQueue.jsx";
+import TheArc from "./components/TheArc.jsx";
 import CoreMechanic from "./components/CoreMechanic.jsx";
 import SkillsFolder from "./components/SkillsFolder.jsx";
 import SimulationLab from "./components/SimulationLab.jsx";
@@ -18,6 +20,8 @@ export default function App() {
       <main>
         <Hero />
         <Marquee />
+        <TheQueue />
+        <TheArc />
         <CoreMechanic />
         <SkillsFolder />
         <SimulationLab />

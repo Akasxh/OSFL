@@ -29,7 +29,7 @@ export default function DigitalTwin() {
     <section className="sec">
       <div className="wrap">
         <SectionHeading
-          label="§04 / THE TWIN"
+          label="§06 / THE TWIN"
           title={<>A folder of you. It <em>drafts in your voice.</em></>}
           lead="Three clusters, three registers — learned from your real messages. The strategist decides what to send; the twin only decides how it reads. Mimicry where fidelity is the truth; the math never touches your wording."
           maxw="56ch"

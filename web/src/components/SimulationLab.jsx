@@ -61,7 +61,7 @@ export default function SimulationLab() {
     <section id="sim" className="sec" ref={ref}>
       <div className="wrap">
         <SectionHeading
-          label="§03 / LIVE FORECAST · MONTE-CARLO · 10,000 RUNS"
+          label="§05 / LIVE FORECAST · MONTE-CARLO · 10,000 RUNS"
           title={<>Watch your odds <em>get honest.</em></>}
           lead="Drag the volume. Every dot is one simulated run of your funnel; the emerald area is the share that ends in a win. The number isn't a vibe — it's the engine."
           maxw="50ch"

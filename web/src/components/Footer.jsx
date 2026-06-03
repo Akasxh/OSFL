@@ -16,8 +16,9 @@ export default function Footer() {
           <a className="nav-link" href="https://github.com/Akasxh/OSFL" target="_blank" rel="noreferrer">GitHub ↗</a>
         </div>
       </div>
-      <div className="wrap" style={{ paddingBottom: 28 }}>
+      <div className="wrap" style={{ paddingBottom: 28, display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
         <div className="mono" style={{ fontSize: 10.5, color: "var(--ink-faint)" }}>© 2026 OSFL · os for life · built in the open</div>
+        <div className="mono" style={{ fontSize: 10.5, color: "var(--ink-faint)" }}>Created by <span style={{ color: "var(--ink-soft)" }}>Akash</span> &amp; <span style={{ color: "var(--ink-soft)" }}>Shine</span></div>
       </div>
     </footer>
   );

@@ -10,7 +10,7 @@ export default function SkillsFolder() {
     <section id="folder" className="sec" style={{ background: "linear-gradient(180deg, transparent, color-mix(in srgb, var(--primary) 4%, var(--paper)) 50%, transparent)" }}>
       <div className="wrap">
         <SectionHeading
-          label="§02 / THE FOLDER OF YOU"
+          label="§04 / THE FOLDER OF YOU"
           title={<>A folder of you. It <em>learns who you are.</em></>}
           lead="A person isn't one skill — they're a stack of them. Connect what's already you (your GitHub, your chats, your résumé) and OSFL reads it into a labeled folder of skills. Every card feeds two engines: mimicry, so it speaks in your voice, and improvement, so it sharpens your odds."
           maxw="58ch"

@@ -12,7 +12,7 @@ export default function CoreMechanic() {
     <section id="model" className="sec">
       <div className="wrap">
         <SectionHeading
-          label="§01 / THE MODEL"
+          label="§03 / THE MODEL"
           title={<>Funnels punish you. <em>Nonlinearly.</em></>}
           lead="You can't will your reply rate to 50%. But you decide how many shots you take — and that's the only variable you actually control. OSFL makes the trade explicit."
           maxw="44ch"

@@ -51,28 +51,26 @@
   color: var(--panel-muted);
   z-index: 20;
 }
-/* the live screen content area (below status bar) */
+/* the live screen content area (below status bar + top caption) */
 .phone-canvas {
   position: absolute;
-  inset: 44px 0 0 0;
+  inset: 60px 0 0 0;
   display: flex;
   flex-direction: column;
 }
-/* caption bar over the demo (mono, instrument) */
+/* caption: a TOP sub-bar under the status bar — never covers screen content */
 .phone-caption {
   position: absolute;
-  left: 14px; right: 14px; bottom: 16px;
+  left: 14px; right: 14px; top: 34px;
   z-index: 25;
   display: flex; align-items: center; gap: 8px;
   font-family: var(--font-mono);
-  font-size: 10.5px;
-  letter-spacing: 0.04em;
-  color: var(--panel-ink);
-  background: rgba(0, 0, 0, 0.42);
-  border: 1px solid var(--panel-line);
-  border-radius: var(--r-pill);
-  padding: 7px 12px;
-  backdrop-filter: blur(6px);
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  color: var(--panel-muted);
+  border-bottom: 1px solid var(--panel-line);
+  padding: 0 4px 7px;
+  transition: opacity 0.3s;
 }
 .phone-caption .rec {
   width: 7px; height: 7px; border-radius: 50%; background: var(--loss);
@@ -119,3 +117,17 @@
 @media (max-width: 420px) {
   .phone { width: 270px; height: 560px; }
 }
+
+/* ---- demo overlay: cursor + spotlight live OUTSIDE the clipped screen ---- */
+.phone-overlay { position: absolute; inset: 0; z-index: 60; pointer-events: none; overflow: visible; }
+.demo-cursor {
+  position: absolute; width: 22px; height: 22px; z-index: 64;
+  filter: drop-shadow(0 3px 5px rgba(0,0,0,0.35));
+}
+.tap-ripple {
+  position: absolute; width: 16px; height: 16px; border-radius: 50%;
+  background: var(--accent); z-index: 63; transform: translate(-50%, -50%);
+}
+.spot-dim { position: absolute; inset: 11px; border-radius: 42px; z-index: 61; background: rgba(8,6,15,0.62); }
+.spot-pop { position: absolute; left: 50%; top: 40%; transform: translate(-50%,-50%); z-index: 63; text-align: center; pointer-events: none; }
+.spot-plane { position: absolute; z-index: 63; font-size: 26px; }

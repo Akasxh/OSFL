@@ -1,7 +1,7 @@
-// The "Folder of you" — hardcoded from Akash's real footprint (github.com/Akasxh).
+// The "Folder of you" — demo skill cards for the persona Alex (github.com/arivera-ml).
 export const SKILLS = [
   {
-    source: "github.com/Akasxh",
+    source: "github.com/arivera-ml",
     title: "Coding Style",
     grade: "HIGH",
     conf: "0.91",
@@ -15,7 +15,7 @@ export const SKILLS = [
     used: "mimicry + improvement",
   },
   {
-    source: "github.com/Akasxh · PRs",
+    source: "github.com/arivera-ml · PRs",
     title: "Collaboration",
     grade: "MEDIUM",
     conf: "0.84",
