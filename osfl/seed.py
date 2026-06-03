@@ -1,7 +1,8 @@
-"""Idempotent seeding: three demo goals with the verified priors, created once.
+"""Idempotent seeding: three demo goals with illustrative priors, created once.
 
-Guarded by meta.seed_loaded so a restart never duplicates. These are the exact priors the
-engine tests pin (job funnel 0.08 → 0.40 → 0.25), so the dashboard tells the verified story.
+Guarded by meta.seed_loaded so a restart never duplicates. The job funnel uses the same
+0.08 → 0.40 → 0.25 conversion rates the engine tests exercise, so the dashboard's headline
+numbers reproduce — but these priors are hand-picked illustrative defaults, not fitted to data.
 """
 
 from __future__ import annotations
@@ -23,7 +24,7 @@ def seed_store(store: Store) -> None:
         return
     today = date.today()
 
-    # --- Land a job (funnel): 0.08 -> 0.40 -> 0.25, the verified demo ---------
+    # --- Land a job (funnel): 0.08 -> 0.40 -> 0.25, the headline demo ---------
     apply_id = _shot_type(store, "cold_email", "Cold application email to a target role", 2.0, 23.0, "professional")
     screen_id = _shot_type(store, "recruiter_screen", "Recruiter screen → onsite conversion", 4.0, 6.0, "professional")
     onsite_id = _shot_type(store, "onsite_interview", "Onsite → offer conversion", 2.5, 7.5, "professional")
@@ -44,7 +45,7 @@ def seed_store(store: Store) -> None:
     )
     store.upsert("goals", job.model_dump())
 
-    # --- Raise a seed round (funnel): lower priors, fewer attempts -----------
+    # --- Raise a seed round (funnel): smaller starting volume (n0=40) ---------
     intro_id = _shot_type(store, "warm_intro", "Warm intro request to an investor", 2.0, 8.0, "professional")
     fm_id = _shot_type(store, "first_meeting", "Intro → first meeting", 3.0, 7.0, "professional")
     pm_id = _shot_type(
