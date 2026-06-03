@@ -16,6 +16,7 @@ with a deterministic offline fallback so the app never hard-depends on the netwo
 
 from __future__ import annotations
 
+import logging
 from datetime import date, datetime
 
 from . import engine as E
@@ -38,6 +39,8 @@ from .persona.drafter import seed_from
 from .persona.loader import PersonaLoader
 from .persona.voice import split_subject, voice_system_prompt, voice_user_prompt
 from .store import Store
+
+logger = logging.getLogger(__name__)
 
 
 # --------------------------------------------------------------------------- #
@@ -314,6 +317,7 @@ class Planner:
             try:
                 spec = _spec_from_llm(self._llm_decompose(goal))
             except Exception:
+                logger.warning("LLM goal decomposition failed; using deterministic archetype", exc_info=True)
                 spec = None  # any failure → deterministic archetype
         if spec is None:
             arch = archetype or self.detect_archetype(goal.title)
@@ -488,7 +492,7 @@ class Persona:
                 self.store.upsert("drafts", d.model_dump())
                 return d
             except Exception:
-                pass  # fall through to the deterministic template
+                logger.warning("LLM draft failed; falling back to the deterministic template", exc_info=True)
 
         if seed is None:
             seed = seed_from(ctx.get("goal_id"), ctx.get("stage_id"), ctx.get("contact_id"))
@@ -640,5 +644,6 @@ class Advisor:
         try:
             answer = self.llm.chat(system, user, temperature=0.6, max_tokens=500)
         except Exception as e:
+            logger.warning("LLM scenario advice failed", exc_info=True)
             return {"available": True, "answer": f"(LLM error: {type(e).__name__}) — try again.", "model": self.llm.model}
         return {"available": True, "answer": answer, "model": self.llm.model}

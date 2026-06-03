@@ -7,6 +7,7 @@ forecasts on first load. Paths are resolved against the project root, so it runs
 
 from __future__ import annotations
 
+import logging
 import os
 from pathlib import Path
 
@@ -31,6 +32,12 @@ from .orchestrator import Orchestrator
 from .persona.loader import PersonaLoader
 from .seed import seed_store
 from .store import Store
+
+logging.basicConfig(
+    level=os.environ.get("LOG_LEVEL", "INFO").upper(),
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+)
+logger = logging.getLogger(__name__)
 
 ROOT = Path(__file__).resolve().parent.parent
 STATIC_DIR = ROOT / "static"

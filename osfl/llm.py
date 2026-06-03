@@ -18,10 +18,9 @@ _ROOT = Path(__file__).resolve().parent.parent
 def _load_env() -> None:
     try:
         from dotenv import load_dotenv
-
-        load_dotenv(_ROOT / ".env")
-    except Exception:
-        pass
+    except ImportError:
+        return  # python-dotenv is a declared dep, but stay importable without it
+    load_dotenv(_ROOT / ".env")
 
 
 _load_env()
