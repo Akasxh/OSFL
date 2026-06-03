@@ -71,13 +71,13 @@ function Connect() {
     <div className="scr">
       <div style={grat} />
       <motion.div {...fade()} style={{ position: "relative" }}>
-        <div className="scr-h">Build your OS, <span style={{ color: "var(--accent)" }}>Alex</span></div>
+        <div className="scr-h">Build your OS, <span style={{ color: "var(--accent)" }}>Akash</span></div>
         <Mono s={10}>connect what's already you →</Mono>
       </motion.div>
       <div style={{ position: "relative", display: "grid", gap: 10, marginTop: 18 }}>
-        <ConnectRow label="GitHub" sub="github.com/arivera-ml" glyph="⌥" delay={0.3} />
+        <ConnectRow label="GitHub" sub="github.com/Akasxh" glyph="⌥" delay={0.3} />
         <ConnectRow label="Slack export" sub="3 clusters · 2,107 msgs" glyph="◍" delay={0.7} />
-        <ConnectRow label="résumé.pdf" sub="ML systems · 6 yrs" glyph="▤" delay={1.1} />
+        <ConnectRow label="résumé.pdf" sub="IIT Patna · CERN GSoC" glyph="▤" delay={1.1} />
       </div>
       <TapBtn label="Read me →" id="connect" />
     </div>
@@ -86,7 +86,7 @@ function Connect() {
 
 /* ---------- 3. FOLDER ---------- */
 const LOG = [
-  "scan github.com/arivera-ml",
+  "scan github.com/Akasxh",
   "  repos: 41 · commits: 3,212 · langs: 6",
   "  → JAX/TPU · LLVM/MLIR · CUDA · vLLM",
   "parse slack_export.zip · 2,107 msgs",
@@ -127,7 +127,7 @@ function Folder() {
 
 /* ---------- 4. GOAL ---------- */
 function Goal() {
-  const text = "Land a senior ML systems role";
+  const text = "Land a senior TPU role at Google";
   return (
     <div className="scr">
       <div style={grat} />
@@ -140,7 +140,7 @@ function Goal() {
           <motion.span animate={{ opacity: [1, 0, 1] }} transition={{ repeat: Infinity, duration: 0.9 }} style={{ color: "var(--accent)" }}>▍</motion.span>
         </div>
         <div className="scr-row" style={{ gap: 6, marginTop: 16, flexWrap: "wrap" }}>
-          {["$200k+", "1–3 months", "needs visa"].map((c, i) => (
+          {["$200k+", "1–3 months", "needs H1B"].map((c, i) => (
             <motion.span key={c} {...fade(1.6 + i * 0.15)} style={{ fontFamily: "var(--font-mono)", fontSize: 10, padding: "5px 9px", borderRadius: 999, border: "1px solid var(--panel-line)", color: "var(--panel-ink)" }}>{c}</motion.span>
           ))}
         </div>
@@ -245,8 +245,8 @@ function Bayes() {
 
 /* ---------- 8. WHOLE LIFE ---------- */
 const LIFE = [
-  { d: "CAREER", t: "Warm intro → eng manager", s: 0.81, c: "#5b4fe9" },
-  { d: "STARTUP", t: "Reply to lead investor", s: 0.74, c: "#f4a52b" },
+  { d: "CAREER", t: "Warm intro → Google TPU lead", s: 0.81, c: "#5b4fe9" },
+  { d: "SHOTCOUNT", t: "Reply to lead investor", s: 0.74, c: "#f4a52b" },
   { d: "BODY", t: "4 gym sessions this week", s: 0.63, c: "#3fd17a" },
   { d: "FAMILY", t: "Call home · 9 days", s: 0.58, c: "#c77dff" },
 ];
@@ -279,14 +279,14 @@ function WholeLife() {
 }
 
 /* ---------- 9. DRAFT ---------- */
-const EMAIL = "Hi — I lead ML-systems / TPU kernel work (open-source upstream). I'd love 15 minutes on the inference-optimization roadmap. Could we find a slot this week?";
+const EMAIL = "Hi — I lead TPU kernel + inference work upstream (vLLM, LLVM/MLIR), CERN GSoC alum. I'd love 15 minutes on the TPU inference-optimization roadmap. Could we find a slot this week?";
 function Draft() {
   return (
     <div className="scr">
       <div style={grat} />
       <div style={{ position: "relative" }} className="scr-h">Drafted in your voice</div>
       <div className="scr-row" style={{ justifyContent: "space-between", marginTop: 4 }}>
-        <Mono s={10}>to: Hiring Manager · ML Systems</Mono>
+        <Mono s={10}>to: Hiring Manager · Google TPU</Mono>
         <Mono s={9} c="var(--win)">professional</Mono>
       </div>
       <motion.div {...fade(0.3)} style={{ position: "relative", marginTop: 12, padding: 13, borderRadius: 12, background: "var(--panel-raised)", border: "1px solid var(--panel-line)", fontSize: 12.5, lineHeight: 1.5, color: "var(--panel-ink)", flex: 1 }}>

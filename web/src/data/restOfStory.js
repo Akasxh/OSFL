@@ -1,9 +1,9 @@
 // The parts the phone demo doesn't show: one cross-life queue + the 90-day arc.
 
 export const QUEUE = [
-  { rank: 1, domain: "CAREER", color: "#5b4fe9", task: "Warm intro → a target eng manager", score: 0.81,
+  { rank: 1, domain: "CAREER", color: "#5b4fe9", task: "Warm intro → a Google TPU lead", score: 0.81,
     f: { impact: 0.9, urgency: 0.55, ltv: 0.9, dp: 1.0 } },
-  { rank: 2, domain: "FUNDRAISE", color: "#f4a52b", task: "Reply to the lead investor — keep it warm", score: 0.74,
+  { rank: 2, domain: "SHOTCOUNT", color: "#f4a52b", task: "Reply to the lead investor — keep it warm", score: 0.74,
     f: { impact: 0.85, urgency: 0.7, ltv: 0.75, dp: 0.8 } },
   { rank: 3, domain: "BODY", color: "#3fd17a", task: "4 gym sessions this week — hold the streak", score: 0.63,
     f: { impact: 0.5, urgency: 0.45, ltv: 1.0, dp: 0.7 } },

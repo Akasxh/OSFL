@@ -1,7 +1,8 @@
-// The "Folder of you" — demo skill cards for the persona Alex (github.com/arivera-ml).
+// The "Folder of you" — real footprint of Akash (github.com/Akasxh): IIT Patna, CERN GSoC,
+// vLLM/TPU + LLVM/MLIR, ECIR 2026 + EuroLLVM 2026, CTO of ShotCount.
 export const SKILLS = [
   {
-    source: "github.com/arivera-ml",
+    source: "github.com/Akasxh",
     title: "Coding Style",
     grade: "HIGH",
     conf: "0.91",
@@ -15,7 +16,7 @@ export const SKILLS = [
     used: "mimicry + improvement",
   },
   {
-    source: "github.com/arivera-ml · PRs",
+    source: "github.com/Akasxh · PRs",
     title: "Collaboration",
     grade: "MEDIUM",
     conf: "0.84",
