@@ -7,6 +7,7 @@ forecasts on first load. Paths are resolved against the project root, so it runs
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
@@ -34,7 +35,7 @@ from .store import Store
 ROOT = Path(__file__).resolve().parent.parent
 STATIC_DIR = ROOT / "static"
 
-store = Store(str(ROOT / "data" / "store.json"))
+store = Store(os.environ.get("OSFL_STORE_PATH", str(ROOT / "data" / "store.json")))
 loader = PersonaLoader(str(ROOT / "personas"))
 seed_store(store)
 llm = LLM()

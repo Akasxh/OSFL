@@ -150,7 +150,9 @@ def validate_strategy(
     bi = bn.stage_index
     a, b = improved[bi]
     cur = a / (a + b)
-    better = max(cur * 2.0, 0.25)
+    # clamp into a valid, sensible probability: 2x current, floored at 25%, capped at 95%
+    # (without the cap, a bottleneck mean > 50% would make (1-better) negative → invalid Beta)
+    better = min(max(cur * 2.0, 0.25), 0.95)
     s = a + b
     improved[bi] = (better * s, (1.0 - better) * s)
     mv2 = min_volume_for_threshold(improved, T, threshold)
