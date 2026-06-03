@@ -9,15 +9,14 @@ at 1.0 — otherwise tiny absolute +1-shot deltas would crush every score toward
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
 
 
 @dataclass
 class RankedShot:
     goal_id: str
-    stage_id: Optional[str]
+    stage_id: str | None
     shot_type_id: str
-    persona: Optional[str]
+    persona: str | None
     score: float
     impact: float
     urgency: float
@@ -44,7 +43,7 @@ def rank_queue(candidates: list[dict], horizon: float = 60.0) -> list[RankedShot
     raw = [marginal_p_gain(c["p_now"], c["p_plus_one"]) for c in candidates]
     mx = max(raw) if raw else 0.0
     out: list[RankedShot] = []
-    for c, r in zip(candidates, raw):
+    for c, r in zip(candidates, raw, strict=True):
         mpg_norm = (r / mx) if mx > 0 else 0.0
         urg = urgency_factor(c["days_to_deadline"], horizon)
         out.append(

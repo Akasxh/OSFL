@@ -33,7 +33,9 @@ def pytest_configure(config):
 
 def pytest_addoption(parser):
     parser.addoption(
-        "--run-llm", action="store_true", default=False,
+        "--run-llm",
+        action="store_true",
+        default=False,
         help="run @pytest.mark.llm tests against the real OpenAI API (uses the key in .env)",
     )
 

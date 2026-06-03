@@ -7,6 +7,7 @@ per-agent timings. The API calls agents directly for the main flows; this powers
 from __future__ import annotations
 
 from time import perf_counter
+from typing import Any, ClassVar, cast
 
 from .agents import (
     Advisor,
@@ -19,13 +20,13 @@ from .agents import (
     Wellbeing,
 )
 from .llm import LLM
-from .models import AgentStep, Goal, OrchestratorTrace, ShotType
+from .models import AgentStep, Cluster, Goal, OrchestratorTrace, ShotType
 from .persona.loader import PersonaLoader
 from .store import Store
 
 
 class Orchestrator:
-    ROUTES: dict[str, list[str]] = {
+    ROUTES: ClassVar[dict[str, list[str]]] = {
         "plan": ["Planner", "Simulator", "DecisionAdvisor"],
         "simulate": ["Simulator"],
         "validate": ["DecisionAdvisor"],
@@ -44,7 +45,7 @@ class Orchestrator:
         self.persona = Persona(store, loader, self.llm)
         self.followup = Followup(store)
         self.wellbeing = Wellbeing(store)
-        self.advisor = DecisionAdvisor(store)          # strategy validation (deterministic)
+        self.advisor = DecisionAdvisor(store)  # strategy validation (deterministic)
         self.scenario = Advisor(store, loader, self.llm)  # free-text scenario advice (LLM)
         self.memory = Memory(store)
 
@@ -64,17 +65,17 @@ class Orchestrator:
             return "plan"
         return "simulate"
 
-    def _cluster_for(self, payload: dict, goal: Goal | None) -> str:
+    def _cluster_for(self, payload: dict[str, Any], goal: Goal | None) -> Cluster:
         if payload.get("persona"):
-            return payload["persona"]
+            return cast("Cluster", payload["persona"])
         if goal and goal.kind == "funnel" and goal.stages:
             raw = self.store.get("shot_types", sorted(goal.stages, key=lambda s: s.order)[0].shot_type_id)
             if raw and raw.get("persona"):
-                return raw["persona"]
+                return cast("Cluster", raw["persona"])
         if goal and goal.shot_type_id:
             raw = self.store.get("shot_types", goal.shot_type_id)
             if raw and raw.get("persona"):
-                return raw["persona"]
+                return cast("Cluster", raw["persona"])
         return "professional"
 
     def route(self, intent: str, payload: dict) -> OrchestratorTrace:
@@ -128,7 +129,9 @@ class Orchestrator:
                     ctx = dict(payload.get("context", {}))
                     if goal:
                         ctx.setdefault("goal_id", goal.id)
-                    d = self.persona.make_draft(stid, cluster, ctx, payload.get("subcluster", "normal"), payload.get("seed"))
+                    d = self.persona.make_draft(
+                        stid, cluster, ctx, payload.get("subcluster", "normal"), payload.get("seed")
+                    )
                     result["draft"] = d.model_dump()
                     action, summary = "draft", f"{cluster} voice"
             elif name == "Followup":

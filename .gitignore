@@ -9,6 +9,7 @@ data/store.json
 node_modules/
 web/node_modules/
 web/dist/
+web/.vite/
 .vercel/
 
 # secrets — never commit

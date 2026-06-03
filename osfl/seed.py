@@ -8,11 +8,11 @@ from __future__ import annotations
 
 from datetime import date, timedelta
 
-from .models import Goal, ShotType, Stage
+from .models import Cluster, Goal, ShotType, Stage
 from .store import Store
 
 
-def _shot_type(store: Store, name: str, desc: str, a: float, b: float, persona: str) -> str:
+def _shot_type(store: Store, name: str, desc: str, a: float, b: float, persona: Cluster) -> str:
     st = ShotType(name=name, description=desc, alpha=a, beta=b, persona=persona)
     store.upsert("shot_types", st.model_dump())
     return st.id
@@ -47,7 +47,9 @@ def seed_store(store: Store) -> None:
     # --- Raise a seed round (funnel): lower priors, fewer attempts -----------
     intro_id = _shot_type(store, "warm_intro", "Warm intro request to an investor", 2.0, 8.0, "professional")
     fm_id = _shot_type(store, "first_meeting", "Intro → first meeting", 3.0, 7.0, "professional")
-    pm_id = _shot_type(store, "partner_meeting", "First meeting → partner meeting / term sheet", 1.5, 8.5, "professional")
+    pm_id = _shot_type(
+        store, "partner_meeting", "First meeting → partner meeting / term sheet", 1.5, 8.5, "professional"
+    )
     seed = Goal(
         title="Raise a seed round",
         kind="funnel",

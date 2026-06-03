@@ -17,14 +17,13 @@ with a deterministic offline fallback so the app never hard-depends on the netwo
 from __future__ import annotations
 
 import logging
-from datetime import date, datetime
+from datetime import date
+from typing import Any, ClassVar, Literal, cast
 
 from . import engine as E
 from .llm import LLM
 from .models import (
-    Followup as FollowupModel,  # aliased: the agent class below is also named Followup
-)
-from .models import (
+    Cluster,
     Goal,
     PersonaDraft,
     QueueItem,
@@ -33,6 +32,9 @@ from .models import (
     Suggestion,
     ValidationReport,
     WellbeingReport,
+)
+from .models import (
+    Followup as FollowupModel,  # aliased: the agent class below is also named Followup
 )
 from .persona.drafter import draft as draft_fn
 from .persona.drafter import seed_from
@@ -96,12 +98,12 @@ def _skeleton_for(shot_type_name: str) -> str:
 
 
 # -- LLM goal-decomposition helpers (convert model JSON into an ARCHETYPES-shaped spec) ----- #
-def _clamp(x, lo: float, hi: float) -> float:
+def _clamp(x: Any, lo: float, hi: float) -> float:
     try:
-        x = float(x)
+        val = float(x)
     except (TypeError, ValueError):
         return lo
-    return max(lo, min(hi, x))
+    return max(lo, min(hi, val))
 
 
 def _slug(s: str) -> str:
@@ -111,11 +113,15 @@ def _slug(s: str) -> str:
     return out or "step"
 
 
-def _persona_of(p) -> str:
-    return p if p in ("professional", "friends", "family") else "professional"
+def _persona_of(p: object) -> Cluster:
+    if p == "friends":
+        return "friends"
+    if p == "family":
+        return "family"
+    return "professional"
 
 
-def _spec_from_llm(data: dict) -> dict:
+def _spec_from_llm(data: dict[str, Any]) -> dict[str, Any]:
     """Turn the model's JSON into the same spec shape Planner.ARCHETYPES uses."""
     if data.get("kind") == "habit":
         mean = _clamp(data.get("adherence", 0.6), 0.05, 0.95)
@@ -249,7 +255,7 @@ class DecisionAdvisor:
 
 
 class Planner:
-    ARCHETYPES: dict[str, dict] = {
+    ARCHETYPES: ClassVar[dict[str, dict]] = {
         "job": {
             "kind": "funnel",
             "n0": 60,
@@ -303,10 +309,11 @@ class Planner:
             return "fitness"
         return "generic"
 
-    def _ensure_shot_type(self, name, desc, mean, a, b, persona) -> str:
+    def _ensure_shot_type(self, name: str, desc: str, mean: float, a: float, b: float, persona: Cluster) -> str:
         existing = self.store.list("shot_types", name=name)
         if existing:
-            return existing[0]["id"]
+            eid: str = existing[0]["id"]
+            return eid
         st = ShotType(name=name, description=desc, alpha=a, beta=b, persona=persona)
         self.store.upsert("shot_types", st.model_dump())
         return st.id
@@ -324,7 +331,9 @@ class Planner:
             spec = self.ARCHETYPES.get(arch, self.ARCHETYPES["generic"])
         return self._apply_spec(goal, spec)
 
-    def _llm_decompose(self, goal: Goal) -> dict:
+    def _llm_decompose(self, goal: Goal) -> dict[str, Any]:
+        if self.llm is None:  # only reached from decompose() under an availability guard
+            raise RuntimeError("_llm_decompose called without an available LLM")
         sys = (
             "You are a planning strategist. Break a goal into either a realistic ordered "
             "conversion FUNNEL or a recurring HABIT, with grounded conversion rates. "
@@ -345,7 +354,7 @@ class Planner:
         )
         return self.llm.chat_json(sys, usr, temperature=0.5, max_tokens=500)
 
-    def _apply_spec(self, goal: Goal, spec: dict) -> Goal:
+    def _apply_spec(self, goal: Goal, spec: dict[str, Any]) -> Goal:
         from .models import Stage
 
         if spec["kind"] == "funnel":
@@ -375,7 +384,7 @@ class Planner:
     def build_queue(self) -> list[QueueItem]:
         goals = [Goal(**g) for g in self.store.list("goals")]
         today = date.today()
-        candidates: list[dict] = []
+        candidates: list[dict[str, Any]] = []
         titles = {g.id: g.title for g in goals}
 
         for g in goals:
@@ -435,7 +444,7 @@ class Planner:
                 goal_id=r.goal_id,
                 goal_title=titles.get(r.goal_id, ""),
                 stage_id=r.stage_id,
-                persona=r.persona,
+                persona=cast("Cluster | None", r.persona),
                 score=r.score,
                 impact=r.impact,
                 urgency=r.urgency,
@@ -456,8 +465,8 @@ class Persona:
     def make_draft(
         self,
         shot_type_id: str,
-        cluster: str,
-        context: dict | None = None,
+        cluster: Cluster,
+        context: dict[str, Any] | None = None,
         subcluster: str = "normal",
         seed: int | None = None,
         use_llm: bool | None = None,
@@ -470,7 +479,7 @@ class Persona:
 
         llm_on = self.llm is not None and self.llm.available
         want_llm = llm_on if use_llm is None else (use_llm and llm_on)
-        if want_llm:
+        if want_llm and self.llm is not None:
             try:
                 system = voice_system_prompt(params, self.loader.prose(cluster), subcluster)
                 user = voice_user_prompt(skeleton, ctx)
@@ -574,11 +583,10 @@ class Wellbeing:
         at_risk = [
             g.id
             for g in active
-            if g.last_sim
-            and g.last_sim.p_success < g.threshold
-            and _days_until(g.deadline, today) <= 30
+            if g.last_sim and g.last_sim.p_success < g.threshold and _days_until(g.deadline, today) <= 30
         ]
 
+        load: Literal["light", "steady", "heavy"]
         if len(at_risk) >= 2 or len(active) > 3:
             load = "heavy"
         elif len(active) >= 2:
@@ -626,7 +634,7 @@ class Advisor:
             )
         return "\n".join(lines) or "(no goals yet)"
 
-    def advise(self, question: str, goal: Goal | None = None, cluster: str = "professional") -> dict:
+    def advise(self, question: str, goal: Goal | None = None, cluster: str = "professional") -> dict[str, Any]:
         if self.llm is None or not self.llm.available:
             return {
                 "available": False,
@@ -645,5 +653,9 @@ class Advisor:
             answer = self.llm.chat(system, user, temperature=0.6, max_tokens=500)
         except Exception as e:
             logger.warning("LLM scenario advice failed", exc_info=True)
-            return {"available": True, "answer": f"(LLM error: {type(e).__name__}) — try again.", "model": self.llm.model}
+            return {
+                "available": True,
+                "answer": f"(LLM error: {type(e).__name__}) — try again.",
+                "model": self.llm.model,
+            }
         return {"available": True, "answer": answer, "model": self.llm.model}

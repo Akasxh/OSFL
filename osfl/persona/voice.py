@@ -44,7 +44,9 @@ Rules:
 
 def voice_user_prompt(skeleton: str, context: dict) -> str:
     purpose = _PURPOSE.get(skeleton, "message")
-    ctx = {k: v for k, v in (context or {}).items() if k not in ("shot_type_id", "goal_id", "stage_id", "skeleton") and v}
+    ctx = {
+        k: v for k, v in (context or {}).items() if k not in ("shot_type_id", "goal_id", "stage_id", "skeleton") and v
+    }
     lines = "\n".join(f"- {k}: {v}" for k, v in ctx.items()) or "- (no extra context)"
     return f"Write a {purpose}.\nContext:\n{lines}"
 

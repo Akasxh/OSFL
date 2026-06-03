@@ -20,8 +20,6 @@ from __future__ import annotations
 
 import re
 
-import pytest
-
 # A panel/network action can involve a real subprocess round-trip; be generous.
 T = 20000
 
@@ -87,8 +85,7 @@ def test_clicking_goal_card_sets_active(page, base_url):
     goals_panel.get_by_text("Get fit", exact=True).click()
     # The active-goal workspace line must update to the new title.
     page.wait_for_function(
-        "() => document.querySelector('section.xl\\\\:col-span-7')"
-        "?.innerText.includes('Get fit')",
+        "() => document.querySelector('section.xl\\\\:col-span-7')?.innerText.includes('Get fit')",
         timeout=T,
     )
     assert "Get fit" in active_line.inner_text()
@@ -186,7 +183,9 @@ def test_persona_tabs_switch_and_show_params(page, base_url):
     _boot(page, base_url)
 
     # Persona panel ⑥ defaults to the "professional" tab; params grid shows formality+warmth.
-    params_grid = page.locator("xpath=//div[contains(@class,'grid') and contains(., 'formality') and contains(., 'warmth')]")
+    params_grid = page.locator(
+        "xpath=//div[contains(@class,'grid') and contains(., 'formality') and contains(., 'warmth')]"
+    )
     params_grid.first.wait_for(timeout=T)
     assert "formality" in params_grid.first.inner_text()
     assert "warmth" in params_grid.first.inner_text()
@@ -194,7 +193,9 @@ def test_persona_tabs_switch_and_show_params(page, base_url):
     prof_formality = params_grid.first.inner_text()
 
     # Switch to the "family" tab (a persona-tab button, scoped to panel ⑥, not the advisor panel).
-    persona_panel = page.locator("xpath=//h2[contains(.,'Persona / digital twin')]/ancestor::div[contains(@class,'card')]")
+    persona_panel = page.locator(
+        "xpath=//h2[contains(.,'Persona / digital twin')]/ancestor::div[contains(@class,'card')]"
+    )
     persona_panel.get_by_role("button", name="family", exact=True).click()
 
     # Params must re-render; family's formality differs from professional's (cross-cluster voice).
@@ -214,7 +215,9 @@ def test_persona_tabs_switch_and_show_params(page, base_url):
 # --------------------------------------------------------------------------- #
 def test_draft_in_professional_voice_is_template_offline(page, base_url):
     _boot(page, base_url)
-    persona_panel = page.locator("xpath=//h2[contains(.,'Persona / digital twin')]/ancestor::div[contains(@class,'card')]")
+    persona_panel = page.locator(
+        "xpath=//h2[contains(.,'Persona / digital twin')]/ancestor::div[contains(@class,'card')]"
+    )
     # Default persona tab is professional; the button text reads "Draft in professional voice".
     persona_panel.get_by_role("button", name=re.compile("Draft in professional voice")).click()
 
@@ -238,7 +241,9 @@ def test_draft_in_professional_voice_is_template_offline(page, base_url):
 # --------------------------------------------------------------------------- #
 def test_route_renders_trace_with_decision_advisor_chip(page, base_url):
     _boot(page, base_url)
-    orch_panel = page.locator("xpath=//h2[contains(.,'Orchestrator routing trace')]/ancestor::div[contains(@class,'card')]")
+    orch_panel = page.locator(
+        "xpath=//h2[contains(.,'Orchestrator routing trace')]/ancestor::div[contains(@class,'card')]"
+    )
     # Default request is "is my plan realistic?" -> intent validate -> route [DecisionAdvisor].
     orch_panel.get_by_role("button", name="Route", exact=True).click()
 
@@ -297,8 +302,7 @@ def test_new_goal_creates_auto_decomposed_goal_in_list(page, base_url):
     )
     # Confirm via API state that the created goal actually has stages (auto-decompose worked).
     new_goal = page.evaluate(
-        "async (t) => { const s = await (await fetch('/api/state')).json();"
-        " return s.goals.find(g => g.title === t); }",
+        "async (t) => { const s = await (await fetch('/api/state')).json(); return s.goals.find(g => g.title === t); }",
         title,
     )
     assert new_goal is not None, "new goal not found in state"
@@ -315,9 +319,13 @@ def test_panel_badges_show_endpoint_and_latency(page, base_url):
     page.get_by_role("button", name=re.compile("Run 10k simulations")).click()
     page.get_by_role("button", name="Validate strategy").click()
 
-    persona_panel = page.locator("xpath=//h2[contains(.,'Persona / digital twin')]/ancestor::div[contains(@class,'card')]")
+    persona_panel = page.locator(
+        "xpath=//h2[contains(.,'Persona / digital twin')]/ancestor::div[contains(@class,'card')]"
+    )
     persona_panel.get_by_role("button", name=re.compile("Draft in professional voice")).click()
-    orch_panel = page.locator("xpath=//h2[contains(.,'Orchestrator routing trace')]/ancestor::div[contains(@class,'card')]")
+    orch_panel = page.locator(
+        "xpath=//h2[contains(.,'Orchestrator routing trace')]/ancestor::div[contains(@class,'card')]"
+    )
     orch_panel.get_by_role("button", name="Route", exact=True).click()
     advisor_panel = page.locator("xpath=//h2[contains(.,'Scenario advisor')]/ancestor::div[contains(@class,'card')]")
     advisor_panel.get_by_role("button", name=re.compile("Ask")).click()
@@ -361,9 +369,13 @@ def test_no_external_network_requests(page, base_url):
     # Exercise every interactive surface that could fetch.
     page.get_by_role("button", name=re.compile("Run 10k simulations")).click()
     page.get_by_role("button", name="Validate strategy").click()
-    persona_panel = page.locator("xpath=//h2[contains(.,'Persona / digital twin')]/ancestor::div[contains(@class,'card')]")
+    persona_panel = page.locator(
+        "xpath=//h2[contains(.,'Persona / digital twin')]/ancestor::div[contains(@class,'card')]"
+    )
     persona_panel.get_by_role("button", name=re.compile("Draft in professional voice")).click()
-    orch_panel = page.locator("xpath=//h2[contains(.,'Orchestrator routing trace')]/ancestor::div[contains(@class,'card')]")
+    orch_panel = page.locator(
+        "xpath=//h2[contains(.,'Orchestrator routing trace')]/ancestor::div[contains(@class,'card')]"
+    )
     orch_panel.get_by_role("button", name="Route", exact=True).click()
     advisor_panel = page.locator("xpath=//h2[contains(.,'Scenario advisor')]/ancestor::div[contains(@class,'card')]")
     advisor_panel.get_by_role("button", name=re.compile("Ask")).click()

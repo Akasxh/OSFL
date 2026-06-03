@@ -54,12 +54,17 @@ def test_validate_strategy_never_emits_over_100_percent():
 # LLM-spec clamping: adversarial model JSON is coerced to valid bounds (deterministic).
 # --------------------------------------------------------------------------- #
 def test_spec_from_llm_clamps_adversarial_funnel():
-    spec = _spec_from_llm({
-        "kind": "funnel",
-        "stages": [{"name": "X!! weird", "conversion": 5.0, "persona": "martian"},
-                   {"name": "Y", "conversion": -1.0}],
-        "n0_volume": -3, "target_successes": 0,
-    })
+    spec = _spec_from_llm(
+        {
+            "kind": "funnel",
+            "stages": [
+                {"name": "X!! weird", "conversion": 5.0, "persona": "martian"},
+                {"name": "Y", "conversion": -1.0},
+            ],
+            "n0_volume": -3,
+            "target_successes": 0,
+        }
+    )
     assert spec["kind"] == "funnel"
     for _name, _label, mean, a, b, persona in spec["stages"]:
         assert 0.01 <= mean <= 0.97
@@ -69,10 +74,11 @@ def test_spec_from_llm_clamps_adversarial_funnel():
 
 
 def test_spec_from_llm_clamps_adversarial_habit():
-    spec = _spec_from_llm({"kind": "habit", "adherence": 9.0, "scheduled_sessions": 0,
-                           "target_sessions": -2, "shot_name": "Run!"})
+    spec = _spec_from_llm(
+        {"kind": "habit", "adherence": 9.0, "scheduled_sessions": 0, "target_sessions": -2, "shot_name": "Run!"}
+    )
     assert spec["kind"] == "habit"
-    name, label, mean, a, b, persona = spec["shot"]
+    _name, _label, mean, a, b, persona = spec["shot"]
     assert 0.05 <= mean <= 0.95 and a > 0 and b > 0
     assert spec["sessions"] >= 1 and spec["target"] >= 1
     assert persona == "professional"
@@ -107,8 +113,9 @@ def test_habit_burnout_domain_guard(bad):
 # API graceful paths the review flagged.
 # --------------------------------------------------------------------------- #
 def test_draft_with_unknown_shot_type_is_graceful(client):
-    r = client.post("/api/draft", json={"shot_type_id": "does-not-exist", "persona": "professional",
-                                        "context": {"name": "Sam"}})
+    r = client.post(
+        "/api/draft", json={"shot_type_id": "does-not-exist", "persona": "professional", "context": {"name": "Sam"}}
+    )
     assert r.status_code == 200
     body = r.json()
     assert body["engine"] == "template" and body["body"]

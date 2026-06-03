@@ -17,7 +17,6 @@ from __future__ import annotations
 
 import math
 
-import numpy as np
 import pytest
 from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
@@ -221,7 +220,7 @@ def test_min_volume_empty_stages_is_unreachable_sentinel():
 )
 def test_posterior_mean_lies_between_prior_and_sample(pa, pb, n, frac):
     prior = (pa, pb)
-    k = int(round(frac * n))
+    k = round(frac * n)
     post = update_posterior(prior, k, n)
     prior_m = posterior_mean(prior)
     sample_m = k / n
@@ -284,8 +283,7 @@ def _candidate(gid, impact, ltv, days, p_now, p_plus_one, **kw):
 )
 def test_rank_queue_normalizes_marginal_gain_into_unit_interval(gains):
     cands = [
-        _candidate(f"g{i}", impact=0.5, ltv=0.5, days=30, p_now=pn, p_plus_one=pp)
-        for i, (pn, pp) in enumerate(gains)
+        _candidate(f"g{i}", impact=0.5, ltv=0.5, days=30, p_now=pn, p_plus_one=pp) for i, (pn, pp) in enumerate(gains)
     ]
     ranked = rank_queue(cands)
     norms = [r.marginal_p_gain for r in ranked]

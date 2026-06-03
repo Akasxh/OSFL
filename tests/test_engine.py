@@ -4,8 +4,6 @@ Exact, version-independent facts (closed form / arithmetic) are asserted tightly
 The one MC value (seed 42) is asserted within a band; numpy is pinned via uv.lock.
 """
 
-import math
-
 from osfl.engine import (
     beta_from_mean,
     find_bottleneck,
@@ -70,12 +68,33 @@ def test_validate_rejects_job_funnel():
 
 def test_priority_ranking():
     cands = [
-        {"goal_id": "job", "shot_type_id": "cold_email", "impact": 0.90,
-         "days_to_deadline": 45, "ltv": 0.90, "p_now": 0.0, "p_plus_one": 0.10},
-        {"goal_id": "fit", "shot_type_id": "gym", "impact": 0.60,
-         "days_to_deadline": 30, "ltv": 1.00, "p_now": 0.0, "p_plus_one": 0.06},
-        {"goal_id": "reconnect", "shot_type_id": "msg", "impact": 0.40,
-         "days_to_deadline": 13.8, "ltv": 0.50, "p_now": 0.0, "p_plus_one": 0.04},
+        {
+            "goal_id": "job",
+            "shot_type_id": "cold_email",
+            "impact": 0.90,
+            "days_to_deadline": 45,
+            "ltv": 0.90,
+            "p_now": 0.0,
+            "p_plus_one": 0.10,
+        },
+        {
+            "goal_id": "fit",
+            "shot_type_id": "gym",
+            "impact": 0.60,
+            "days_to_deadline": 30,
+            "ltv": 1.00,
+            "p_now": 0.0,
+            "p_plus_one": 0.06,
+        },
+        {
+            "goal_id": "reconnect",
+            "shot_type_id": "msg",
+            "impact": 0.40,
+            "days_to_deadline": 13.8,
+            "ltv": 0.50,
+            "p_now": 0.0,
+            "p_plus_one": 0.04,
+        },
     ]
     ranked = rank_queue(cands)
     assert [r.goal_id for r in ranked] == ["job", "fit", "reconnect"]

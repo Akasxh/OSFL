@@ -19,14 +19,21 @@ from .llm import LLM
 from .models import (
     AdviseRequest,
     DraftRequest,
+    Followup,
     Goal,
     GoalCreate,
     GoalPatch,
+    OrchestrateRequest,
+    OrchestratorTrace,
     Outcome,
     OutcomeCreate,
-    OrchestrateRequest,
+    PersonaDraft,
+    QueueItem,
     ShotType,
     SimRequest,
+    SimulationResult,
+    ValidationReport,
+    WellbeingReport,
 )
 from .orchestrator import Orchestrator
 from .persona.loader import PersonaLoader
@@ -113,18 +120,18 @@ def get_personas() -> dict:
 
 
 @app.get("/api/queue")
-def get_queue(limit: int | None = None):
+def get_queue(limit: int | None = None) -> list[QueueItem]:
     q = orch.planner.build_queue()
     return q[:limit] if limit else q
 
 
 @app.get("/api/wellbeing")
-def get_wellbeing():
+def get_wellbeing() -> WellbeingReport:
     return orch.wellbeing.report()
 
 
 @app.get("/api/followups")
-def get_followups():
+def get_followups() -> list[Followup]:
     return orch.followup.due()
 
 
@@ -164,12 +171,12 @@ def patch_goal(gid: str, body: GoalPatch) -> Goal:
 
 
 @app.post("/api/goals/{gid}/simulate")
-def simulate_goal(gid: str, body: SimRequest):
+def simulate_goal(gid: str, body: SimRequest) -> SimulationResult:
     return orch.simulator.run(_goal(gid), body.runs, body.seed)
 
 
 @app.post("/api/goals/{gid}/validate")
-def validate_goal(gid: str, body: SimRequest):
+def validate_goal(gid: str, body: SimRequest) -> ValidationReport:
     return orch.advisor.advise(_goal(gid), body.runs, body.seed)
 
 
@@ -191,8 +198,9 @@ def log_outcome(gid: str, body: OutcomeCreate) -> dict:
     validation = orch.advisor.advise(g, seed=42)
 
     raw_goal = store.get("goals", gid)
-    raw_goal["status"] = "at_risk" if sim.p_success < g.threshold else "active"
-    store.upsert("goals", raw_goal)
+    if raw_goal is not None:
+        raw_goal["status"] = "at_risk" if sim.p_success < g.threshold else "active"
+        store.upsert("goals", raw_goal)
 
     return {
         "outcome": outcome,
@@ -209,14 +217,14 @@ def log_outcome(gid: str, body: OutcomeCreate) -> dict:
 # Persona + orchestration
 # --------------------------------------------------------------------------- #
 @app.post("/api/draft")
-def post_draft(body: DraftRequest):
+def post_draft(body: DraftRequest) -> PersonaDraft:
     return orch.persona.make_draft(
         body.shot_type_id, body.persona, body.context, body.subcluster, body.seed, body.use_llm
     )
 
 
 @app.post("/api/orchestrate")
-def post_orchestrate(body: OrchestrateRequest):
+def post_orchestrate(body: OrchestrateRequest) -> OrchestratorTrace:
     intent = Orchestrator.infer_intent(body.request)
     return orch.route(intent, {"request": body.request, "goal_id": body.goal_id})
 

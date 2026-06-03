@@ -7,7 +7,7 @@ from pathlib import Path
 
 import yaml
 
-from ..models import Cluster, PersonaParams
+from ..models import PersonaParams
 
 CLUSTERS: tuple[str, ...] = ("professional", "friends", "family")
 

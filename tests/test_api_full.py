@@ -183,9 +183,7 @@ def test_draft_engine_is_template_offline(client):
 def test_draft_honours_persona_cluster(client):
     job = _seeded_job(client)
     st_id = job["stages"][0]["shot_type_id"]
-    d = client.post(
-        "/api/draft", json={"shot_type_id": st_id, "persona": "friends", "subcluster": "close"}
-    ).json()
+    d = client.post("/api/draft", json={"shot_type_id": st_id, "persona": "friends", "subcluster": "close"}).json()
     assert d["persona"] == "friends"
     assert d["engine"] == "template"
 
@@ -194,9 +192,7 @@ def test_draft_use_llm_true_still_falls_back_offline(client):
     """use_llm=True must NOT error offline — it falls through to the template."""
     job = _seeded_job(client)
     st_id = job["stages"][0]["shot_type_id"]
-    d = client.post(
-        "/api/draft", json={"shot_type_id": st_id, "persona": "professional", "use_llm": True}
-    ).json()
+    d = client.post("/api/draft", json={"shot_type_id": st_id, "persona": "professional", "use_llm": True}).json()
     assert d["engine"] == "template"
 
 
@@ -211,9 +207,7 @@ def test_advise_unavailable_offline(client):
 
 def test_advise_with_goal_id_still_offline(client):
     job = _seeded_job(client)
-    body = client.post(
-        "/api/advise", json={"question": "What now?", "goal_id": job["id"]}
-    ).json()
+    body = client.post("/api/advise", json={"question": "What now?", "goal_id": job["id"]}).json()
     assert body["available"] is False
 
 
@@ -448,9 +442,7 @@ def test_log_outcome_persists_to_state_and_followups(client):
 # --------------------------------------------------------------------------- #
 def test_orchestrate_routes_validate_intent_with_trace(client):
     job = _seeded_job(client)
-    r = client.post(
-        "/api/orchestrate", json={"request": "validate my strategy", "goal_id": job["id"]}
-    )
+    r = client.post("/api/orchestrate", json={"request": "validate my strategy", "goal_id": job["id"]})
     assert r.status_code == 200
     trace = r.json()
     assert set(trace) >= {"request", "cluster", "agents", "result", "elapsed_ms"}
@@ -462,9 +454,7 @@ def test_orchestrate_routes_validate_intent_with_trace(client):
 
 def test_orchestrate_draft_intent(client):
     job = _seeded_job(client)
-    trace = client.post(
-        "/api/orchestrate", json={"request": "write me a draft email", "goal_id": job["id"]}
-    ).json()
+    trace = client.post("/api/orchestrate", json={"request": "write me a draft email", "goal_id": job["id"]}).json()
     assert [s["name"] for s in trace["agents"]] == ["Persona"]
     assert "draft" in trace["result"]
 
@@ -477,9 +467,7 @@ def test_orchestrate_queue_intent(client):
 
 def test_orchestrate_default_simulate_intent(client):
     job = _seeded_job(client)
-    trace = client.post(
-        "/api/orchestrate", json={"request": "show me the odds", "goal_id": job["id"]}
-    ).json()
+    trace = client.post("/api/orchestrate", json={"request": "show me the odds", "goal_id": job["id"]}).json()
     # falls through to "simulate" -> Simulator only
     assert [s["name"] for s in trace["agents"]] == ["Simulator"]
     assert "last_sim" in trace["result"]
@@ -511,9 +499,7 @@ def test_patch_missing_goal_404(client):
 
 
 def test_log_outcome_missing_goal_404(client):
-    r = client.post(
-        "/api/goals/nope/outcomes", json={"shot_type_id": "x", "n_attempts": 1, "k_successes": 0}
-    )
+    r = client.post("/api/goals/nope/outcomes", json={"shot_type_id": "x", "n_attempts": 1, "k_successes": 0})
     assert r.status_code == 404
     assert r.json()["detail"] == "goal not found"
 
@@ -532,9 +518,7 @@ def test_log_outcome_missing_shot_type_404(client):
 # Error paths — 422
 # --------------------------------------------------------------------------- #
 def test_create_goal_threshold_above_one_422(client):
-    r = client.post(
-        "/api/goals", json={"title": "bad", "deadline": "2026-12-01", "threshold": 1.5}
-    )
+    r = client.post("/api/goals", json={"title": "bad", "deadline": "2026-12-01", "threshold": 1.5})
     assert r.status_code == 422
 
 

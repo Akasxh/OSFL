@@ -110,9 +110,17 @@ def test_drafter_is_byte_identical_for_same_inputs(loader: PersonaLoader, cluste
     Same inputs -> byte-identical subject AND body, for every cluster x every skeleton."""
     p = loader.get(cluster)
     ctx = {
-        "name": "Sam", "role": "Engineer", "company": "Acme", "topic": "the proposal",
-        "when": "Tuesday", "pitch": "I shipped two launches last quarter.", "me": "Alex",
-        "goal": "your run", "progress": "halfway", "target": "10k", "reason": "the intro",
+        "name": "Sam",
+        "role": "Engineer",
+        "company": "Acme",
+        "topic": "the proposal",
+        "when": "Tuesday",
+        "pitch": "I shipped two launches last quarter.",
+        "me": "Alex",
+        "goal": "your run",
+        "progress": "halfway",
+        "target": "10k",
+        "reason": "the intro",
         "shot_type_id": "st_x",
     }
     a = draft(skeleton, p, "close", ctx, 4242)
@@ -127,8 +135,15 @@ def test_changing_seed_can_change_output_but_stays_pure(loader: PersonaLoader, s
     """A different seed re-rolls greeting/sign-off/emoji picks; re-running the SAME new seed
     is still byte-identical (purity), so determinism is per-seed, not global state."""
     p = loader.get("friends")
-    ctx = {"name": "Sam", "topic": "the trip", "role": "X", "company": "Y",
-           "pitch": "yo", "me": "Alex", "shot_type_id": "x"}
+    ctx = {
+        "name": "Sam",
+        "topic": "the trip",
+        "role": "X",
+        "company": "Y",
+        "pitch": "yo",
+        "me": "Alex",
+        "shot_type_id": "x",
+    }
     s1a = draft(skeleton, p, "close", ctx, 1)
     s1b = draft(skeleton, p, "close", ctx, 1)
     s2 = draft(skeleton, p, "close", ctx, 999)
@@ -141,8 +156,7 @@ def test_email_skeletons_emit_subject_and_non_email_do_not(loader: PersonaLoader
     """The skeleton table marks apply/intro/followup as email (subject present); ask/thanks/
     habit_nudge are not. The draft.subject field must reflect that flag."""
     p = loader.get("professional")
-    ctx = {"name": "Sam", "role": "SWE", "company": "Acme", "topic": "the deck",
-           "me": "Alex", "shot_type_id": "x"}
+    ctx = {"name": "Sam", "role": "SWE", "company": "Acme", "topic": "the deck", "me": "Alex", "shot_type_id": "x"}
     for sk in ("apply", "intro", "followup"):
         d = draft(sk, p, "normal", ctx, 3)
         assert d.subject, f"{sk} should carry a subject"
@@ -185,8 +199,15 @@ def test_friends_voice_is_casual_professional_is_formal(loader: PersonaLoader):
 @pytest.mark.parametrize("skeleton", _ALL_SKELETONS)
 def test_professional_is_emoji_free_over_seed_sweep(loader: PersonaLoader, skeleton: str):
     p = loader.get("professional")
-    ctx = {"name": "Sam", "role": "SWE", "company": "Acme", "topic": "the deck",
-           "me": "Alex", "goal": "run", "shot_type_id": "x"}
+    ctx = {
+        "name": "Sam",
+        "role": "SWE",
+        "company": "Acme",
+        "topic": "the deck",
+        "me": "Alex",
+        "goal": "run",
+        "shot_type_id": "x",
+    }
     for seed in range(40):
         d = draft(skeleton, p, "normal", ctx, seed)
         assert all(g not in d.body for g in _ALL_GLYPHS), f"emoji leaked at seed={seed}"
@@ -230,7 +251,7 @@ def test_unknown_skeleton_falls_back_to_ask(loader: PersonaLoader):
     assert fallback.body == reference.body
 
 
-@pytest.mark.parametrize("skeleton", _ALL_SKELETONS + ["unknown_xyz"])
+@pytest.mark.parametrize("skeleton", [*_ALL_SKELETONS, "unknown_xyz"])
 def test_empty_context_never_raises_and_produces_body(loader: PersonaLoader, skeleton: str):
     for cluster in CLUSTERS:
         d = draft(skeleton, loader.get(cluster), "normal", {}, 1)
@@ -254,9 +275,9 @@ def test_subcluster_close_vs_acquaintance_changes_greeting_and_signoff(loader: P
     p = loader.get("professional")
     ctx = {"name": "Sam", "role": "SWE", "company": "Acme", "shot_type_id": "x"}
 
-    close_signoffs = set(p.signoffs["close"])        # {'Best,', 'Thanks,'}
-    acq_signoffs = set(p.signoffs["acquaintance"])   # {'Kind regards,', 'Sincerely,'}
-    assert close_signoffs.isdisjoint(acq_signoffs)   # precondition that makes this test meaningful
+    close_signoffs = set(p.signoffs["close"])  # {'Best,', 'Thanks,'}
+    acq_signoffs = set(p.signoffs["acquaintance"])  # {'Kind regards,', 'Sincerely,'}
+    assert close_signoffs.isdisjoint(acq_signoffs)  # precondition that makes this test meaningful
 
     for seed in range(20):
         close = draft("apply", p, "close", ctx, seed).body
@@ -277,7 +298,7 @@ def test_acquaintance_greeting_drops_first_name_when_pool_dictates(loader: Perso
     ctx = {"name": "Sam", "role": "SWE", "company": "Acme", "shot_type_id": "x"}
     acq_greetings = {draft("apply", p, "acquaintance", ctx, s).body.splitlines()[0] for s in range(20)}
     close_greetings = {draft("apply", p, "close", ctx, s).body.splitlines()[0] for s in range(20)}
-    assert "Hello," in acq_greetings           # name-less greeting only exists in acquaintance pool
+    assert "Hello," in acq_greetings  # name-less greeting only exists in acquaintance pool
     assert "Hello," not in close_greetings
 
 

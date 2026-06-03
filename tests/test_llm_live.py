@@ -44,7 +44,7 @@ def _seeded_store():
     from osfl.seed import seed_store
     from osfl.store import Store
 
-    store = Store(tempfile.mktemp(suffix="_osfl_live.json"))
+    store = Store(str(Path(tempfile.mkdtemp()) / "osfl_live.json"))
     seed_store(store)
     return store
 

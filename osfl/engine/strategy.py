@@ -60,8 +60,8 @@ def _binom_sf_ge(n: int, p: float, T: int) -> float:
     if p <= 0.0:
         return 0.0
     if p >= 1.0:
-        return 1.0 if T <= n else 0.0
-    if T > n:
+        return 1.0 if n >= T else 0.0
+    if n < T:
         return 0.0
     if T == 1:
         return 1.0 - (1.0 - p) ** n

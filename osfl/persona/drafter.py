@@ -22,50 +22,58 @@ SKELETONS: dict[str, dict] = {
         "email": True,
         "subject": "Application for the {role} role",
         "core": "I'd like to put my name forward for the {role} role at {company}. {pitch}",
-        "cta": {"direct": "Could we find 15 minutes this week to talk?",
-                "soft": "It would mean a lot to get the chance to chat whenever suits you."},
+        "cta": {
+            "direct": "Could we find 15 minutes this week to talk?",
+            "soft": "It would mean a lot to get the chance to chat whenever suits you.",
+        },
     },
     "ask": {
         "email": False,
         "subject": "Quick question",
         "core": "I wanted to ask you about {topic}. {pitch}",
-        "cta": {"direct": "Let me know what you think?",
-                "soft": "No rush at all — whenever you get a moment."},
+        "cta": {"direct": "Let me know what you think?", "soft": "No rush at all — whenever you get a moment."},
     },
     "intro": {
         "email": True,
         "subject": "Intro — {me}",
         "core": "I'm {me}, {pitch} I came across {company} and thought it was worth reaching out.",
-        "cta": {"direct": "Open to a quick call next week?",
-                "soft": "Would love to connect if you're open to it."},
+        "cta": {"direct": "Open to a quick call next week?", "soft": "Would love to connect if you're open to it."},
     },
     "followup": {
         "email": True,
         "subject": "Following up on {topic}",
         "core": "I'm circling back on {topic} from {when}.",
-        "cta": {"direct": "Is this still on your radar?",
-                "soft": "Totally understand if now's not the time — just keeping it warm."},
+        "cta": {
+            "direct": "Is this still on your radar?",
+            "soft": "Totally understand if now's not the time — just keeping it warm.",
+        },
     },
     "thanks": {
         "email": False,
         "subject": "Thank you",
         "core": "Thank you so much for {reason}. {pitch}",
-        "cta": {"direct": "I owe you one.",
-                "soft": "It genuinely made a difference."},
+        "cta": {"direct": "I owe you one.", "soft": "It genuinely made a difference."},
     },
     "habit_nudge": {
         "email": False,
         "subject": "",
         "core": "Time for {goal} — you're {progress} of the way to {target}.",
-        "cta": {"direct": "Lace up, future-you says thanks.",
-                "soft": "Even a short one counts today."},
+        "cta": {"direct": "Lace up, future-you says thanks.", "soft": "Even a short one counts today."},
     },
 }
 
 _DEFAULTS = {
-    "name": "there", "role": "", "company": "your team", "topic": "my note",
-    "when": "last week", "pitch": "", "me": "me", "goal": "your goal",
-    "progress": "part", "target": "your target", "reason": "your time and help",
+    "name": "there",
+    "role": "",
+    "company": "your team",
+    "topic": "my note",
+    "when": "last week",
+    "pitch": "",
+    "me": "me",
+    "goal": "your goal",
+    "progress": "part",
+    "target": "your target",
+    "reason": "your time and help",
 }
 
 # Word substitutions applied by formality. (casual_form, formal_form)
@@ -83,7 +91,7 @@ _WARMTH_MED = "Hope you're good!"
 
 
 class _Slots(dict):
-    def __missing__(self, key):  # never KeyError on a missing slot
+    def __missing__(self, key: str) -> str:  # never KeyError on a missing slot
         return _DEFAULTS.get(key, "")
 
 
