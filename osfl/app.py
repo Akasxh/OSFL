@@ -55,9 +55,12 @@ seed_store(store)
 llm = LLM()
 orch = Orchestrator(store, loader, llm)
 
-# warm last_sim on every goal so GET /api/goals paints immediately (deterministic seed)
+# Warm last_sim so GET /api/goals paints immediately (deterministic seed). Only for goals
+# that lack a cached forecast — idempotent across restarts over a persisted store.
 for _raw in store.list("goals"):
-    orch.simulator.run(Goal(**_raw), seed=42)
+    if not _raw.get("last_sim"):
+        orch.simulator.run(Goal(**_raw), seed=42)
+logger.info("OSFL ready: %d goals, llm=%s", len(store.list("goals")), llm.available)
 
 app = FastAPI(title="OSFL", version="0.1.0")
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
@@ -81,6 +84,15 @@ def _state() -> dict:
         "personas": loader.all(),
         "llm": {"available": llm.available, "model": llm.model if llm.available else None},
     }
+
+
+# --------------------------------------------------------------------------- #
+# Ops
+# --------------------------------------------------------------------------- #
+@app.get("/healthz")
+def healthz() -> dict[str, object]:
+    """Liveness + readiness: confirms the store is readable and reports basic state."""
+    return {"status": "ok", "goals": len(store.list("goals")), "llm": llm.available}
 
 
 # --------------------------------------------------------------------------- #

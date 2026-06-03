@@ -37,6 +37,15 @@ def _restore_store_after_module():
     appmod.store.save()
 
 
+def test_healthz_reports_ok_and_store_is_readable(client):
+    r = client.get("/healthz")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["status"] == "ok"
+    assert body["goals"] >= 3  # the three seeded demo goals are present
+    assert body["llm"] is False  # the test harness forces the offline path
+
+
 # --------------------------------------------------------------------------- #
 # helpers
 # --------------------------------------------------------------------------- #
