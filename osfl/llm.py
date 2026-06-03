@@ -11,6 +11,10 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from openai import OpenAI
 
 _ROOT = Path(__file__).resolve().parent.parent
 
@@ -30,17 +34,19 @@ class LLM:
     def __init__(self, model: str | None = None) -> None:
         self.api_key: str | None = os.environ.get("OPENAI_API_KEY") or None
         self.model: str = model or os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
-        self._client = None
+        self._client: OpenAI | None = None
 
     @property
     def available(self) -> bool:
         return bool(self.api_key)
 
-    def _get_client(self):
+    def _get_client(self) -> OpenAI:
         if self._client is None:
             from openai import OpenAI
 
-            self._client = OpenAI(api_key=self.api_key)
+            # Bound every request: callers wrap chat()/chat_json() in graceful
+            # fallbacks, but without a timeout a hung connection blocks them forever.
+            self._client = OpenAI(api_key=self.api_key, timeout=30.0, max_retries=2)
         return self._client
 
     def chat(self, system: str, user: str, *, temperature: float = 0.7, max_tokens: int = 700) -> str:
@@ -52,7 +58,7 @@ class LLM:
         )
         return (resp.choices[0].message.content or "").strip()
 
-    def chat_json(self, system: str, user: str, *, temperature: float = 0.4, max_tokens: int = 700) -> dict:
+    def chat_json(self, system: str, user: str, *, temperature: float = 0.4, max_tokens: int = 700) -> dict[str, Any]:
         resp = self._get_client().chat.completions.create(
             model=self.model,
             messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
@@ -60,4 +66,6 @@ class LLM:
             max_tokens=max_tokens,
             response_format={"type": "json_object"},
         )
-        return json.loads((resp.choices[0].message.content or "{}").strip())
+        # response_format=json_object guarantees a top-level object; callers validate the shape.
+        data: dict[str, Any] = json.loads((resp.choices[0].message.content or "{}").strip())
+        return data
