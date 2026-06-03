@@ -104,3 +104,23 @@ h1, h2, h3 { margin: 0; font-weight: 400; }
   *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
 }
 .nav-link{transition:color .15s}.nav-link:hover{color:var(--ink)}
+
+/* ---- SplitSection: co-visible sticky narrative + live sim ---- */
+.sec.splitsec { padding-block: clamp(64px, 8vw, 120px); }
+.split-grid { display: grid; grid-template-columns: minmax(300px, 4fr) minmax(0, 7fr); gap: clamp(28px, 4vw, 72px); align-items: start; }
+.split-narr { position: sticky; top: clamp(84px, 12vh, 128px); align-self: start; max-width: 42ch; }
+.split-title { margin-top: 16px; font-size: clamp(1.9rem, 3.4vw, 3rem); line-height: 0.98; }
+.split-lead { margin-top: 14px; font-size: clamp(1rem, 1.3vw, 1.18rem); }
+.split-sim { min-height: clamp(420px, 56vh, 600px); padding: clamp(18px, 2.4vw, 28px); display: flex; flex-direction: column; }
+.split-steps { list-style: none; margin: 24px 0 0; padding: 0; display: grid; gap: 14px; }
+.split-step { display: grid; grid-template-columns: 18px 1fr; gap: 12px; opacity: 0.4; transition: opacity 0.35s var(--ease-out); }
+.split-step.is-active { opacity: 1; }
+.split-step .dot { width: 9px; height: 9px; border-radius: 50%; margin-top: 7px; background: var(--ink-faint); transition: background 0.35s, box-shadow 0.35s; }
+.split-step.is-active .dot { background: var(--win); box-shadow: 0 0 0 4px rgba(63,209,122,0.16); }
+.split-step .st-k { display: block; font: 600 0.7rem/1 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint); }
+.split-step .st-b { display: block; margin-top: 5px; font-size: 1rem; line-height: 1.45; color: var(--ink-soft); }
+.split-step.is-active .st-b { color: var(--ink); }
+@media (max-width: 960px) {
+  .split-grid { grid-template-columns: 1fr; gap: 24px; }
+  .split-narr { position: static; max-width: none; }
+}

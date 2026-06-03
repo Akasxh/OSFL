@@ -315,4 +315,66 @@ function Sent() {
   );
 }
 
-export const SCREENS = { boot: Boot, connect: Connect, folder: Folder, goal: Goal, funnel: Funnel, forecast: Forecast, bayes: Bayes, wholelife: WholeLife, draft: Draft, sent: Sent };
+/* ---------- 11. INBOX ---------- */
+function Inbox() {
+  return (
+    <div className="scr">
+      <div style={grat} />
+      <div style={{ position: "relative" }} className="scr-h">Inbox</div>
+      <motion.div {...fade(0.2)} style={{ position: "relative", marginTop: 12, padding: 13, borderRadius: 12, background: "var(--panel-raised)", border: "1px solid var(--panel-line)" }}>
+        <div className="scr-row" style={{ justifyContent: "space-between" }}>
+          <Mono s={11} c="var(--panel-ink)">→ Hiring Manager · Google TPU</Mono>
+          <Mono s={10} c="var(--win)">delivered ✓</Mono>
+        </div>
+        <Mono s={10} c="var(--panel-muted)">Re: TPU inference-optimization roadmap</Mono>
+      </motion.div>
+      <div style={{ position: "relative", marginTop: "auto", textAlign: "center" }}>
+        <motion.span animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1.4 }}>
+          <Mono s={10} c="var(--panel-muted)">● watching for a reply…</Mono>
+        </motion.span>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- 12. REPLY ---------- */
+function Reply() {
+  return (
+    <div className="scr">
+      <div style={grat} />
+      {/* notification banner slides down from the island */}
+      <motion.div initial={{ y: -60, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        style={{ position: "relative", display: "flex", gap: 10, alignItems: "center", padding: "10px 12px", borderRadius: 14, background: "var(--panel-raised)", border: "1px solid var(--win)", boxShadow: "0 0 0 3px rgba(63,209,122,0.16)" }}>
+        <span style={{ width: 30, height: 30, borderRadius: 9, background: "var(--win)", color: "#08110a", display: "grid", placeItems: "center", fontWeight: 700 }}>G</span>
+        <div style={{ flex: 1 }}>
+          <div className="scr-row" style={{ justifyContent: "space-between" }}>
+            <span style={{ fontWeight: 600, fontSize: 12 }}>Google · Recruiter</span>
+            <Mono s={9}>now</Mono>
+          </div>
+          <Mono s={10} c="var(--panel-muted)">Re: TPU roadmap</Mono>
+        </div>
+      </motion.div>
+      <motion.div {...fade(0.7)} style={{ position: "relative", marginTop: 14, padding: 14, borderRadius: 12, background: "#0d0b15", border: "1px solid var(--panel-line)", fontSize: 13, lineHeight: 1.55, color: "var(--panel-ink)" }}>
+        "Love this — exactly the work we're scaling. Are you free <span style={{ color: "var(--win)" }}>Thursday 2pm</span> to meet the TPU team?"
+      </motion.div>
+    </div>
+  );
+}
+
+/* ---------- 13. SHOT THAT COUNTS ---------- */
+function ShotCount() {
+  return (
+    <div className="scr" style={{ alignItems: "center", justifyContent: "center", textAlign: "center" }}>
+      <div style={grat} />
+      <motion.div {...fade()} style={{ position: "relative" }}>
+        <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+          style={{ display: "inline-block", width: 14, height: 14, borderRadius: "50%", background: "var(--win)", boxShadow: "0 0 28px var(--win)" }} />
+        <div className="display" style={{ fontSize: 32, marginTop: 16, color: "var(--panel-ink)", lineHeight: 1.05 }}>A shot that <em style={{ color: "var(--win)" }}>counts.</em></div>
+        <Mono s={11} c="var(--panel-muted)">you fired one. it landed.</Mono>
+        <div style={{ marginTop: 18 }}><Mono s={10} c="var(--accent)">1 of 27 · and the model just got smarter</Mono></div>
+      </motion.div>
+    </div>
+  );
+}
+
+export const SCREENS = { boot: Boot, connect: Connect, folder: Folder, goal: Goal, funnel: Funnel, forecast: Forecast, bayes: Bayes, wholelife: WholeLife, draft: Draft, sent: Sent, inbox: Inbox, reply: Reply, shotcount: ShotCount };

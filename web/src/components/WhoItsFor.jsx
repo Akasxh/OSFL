@@ -13,7 +13,7 @@ export default function WhoItsFor() {
     <section className="sec" style={{ paddingTop: 0 }}>
       <div className="wrap">
         <SectionHeading
-          label="§07 / BUILT FOR HIGH-VARIANCE OPERATORS"
+          label="§06 / BUILT FOR HIGH-VARIANCE OPERATORS"
           title={<>If your wins come from <em>many shots,</em> OSFL is your edge.</>}
           maxw="40ch"
         />

@@ -20,13 +20,13 @@ export default function App() {
       <main>
         <Hero />
         <Marquee />
-        <TheQueue />
         <TheArc />
         <CoreMechanic />
-        <SkillsFolder />
         <SimulationLab />
+        <SkillsFolder />
         <DigitalTwin />
         <WhoItsFor />
+        <TheQueue />
         <Philosophy />
         <CTA />
         <FAQ />
