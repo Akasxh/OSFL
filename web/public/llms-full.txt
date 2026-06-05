@@ -1,0 +1,122 @@
+# OSFL — OS For Life (full agent reference)
+
+> OSFL is an open-source, local-first life-planning engine built on one equation:
+> **outcome = probability × volume**. This is the self-contained expanded reference for
+> agents; the short index is at /llms.txt. Repository: https://github.com/Akasxh/OSFL
+> (MIT). Live tour: https://osfl.vercel.app.
+
+## What it does
+
+1. **Decompose** — a goal ("land a job") becomes a funnel of conversion stages
+   (apply 8% → screen 40% → onsite 25%) or a habit (adherence rate × sessions), either
+   from built-in archetypes or, with an OpenAI key, free-text LLM decomposition whose
+   output is clamped and validated before it touches the engine.
+2. **Forecast** — a vectorized Beta-Binomial Monte-Carlo (10,000 runs, seeded,
+   deterministic) reports P(≥ target), percentiles, a histogram, and per-stage drop-off.
+3. **Learn** — logging real outcomes ("5 replies from 30 emails") performs a conjugate
+   Beta update: prior Beta(2, 23) + (k=5, n=30) → posterior Beta(7, 48), mean 12.7%.
+   Forecasts then use the personal posterior, not the population prior.
+4. **Validate** — pass/reject a strategy against a threshold; find the bottleneck stage
+   (largest EV/p leverage); compute the analytic minimum volume to reach the threshold;
+   propose framed fixes (more volume / extend deadline / better channel).
+5. **Prioritize** — one queue across ALL goals, scored
+   `impact × urgency × long_term_value × marginal_p_gain` (marginal gain normalized
+   across candidates so the most-leveraged shot anchors at 1.0).
+6. **Act** — a persona layer parses `personas/*.md` skill files (YAML front-matter +
+   prose) and drafts messages in the user's voice: deterministic seeded templates
+   offline, or LLM drafting with the prose as the system prompt when a key is set.
+
+## The numbers that define the demo (all reproducible)
+
+- Closed-form P(≥1 offer) for 60 applications through 0.08·0.40·0.25: **0.3824**
+- Monte-Carlo P(≥1) at seed 42: **0.3201** — deliberately BELOW the closed form because
+  stage rates are sampled per run from their Beta posteriors (parameter uncertainty).
+  Documented in ADR 0001; do not "fix" the gap.
+- Applications needed for 80%: **201** (not ~126, the naive linear guess)
+- Bayesian update: Beta(2,23) + 5/30 → **Beta(7,48)**, mean 8.0% → **12.7%**
+
+Reproduce from a clone:
+
+    uv run python -c "
+    from osfl.engine.funnel import simulate_funnel
+    from osfl.engine.strategy import min_volume_for_threshold
+    from osfl.engine.bayes import update_posterior
+    stages = [(2.0, 23.0), (4.0, 6.0), (2.5, 7.5)]
+    print(simulate_funnel(60, stages, 1, seed=42).p_success)   # 0.3201
+    print(min_volume_for_threshold(stages, 1, 0.80))           # 201
+    print(update_posterior((2.0, 23.0), 5, 30))                # (7.0, 48.0)
+    "
+
+## Architecture (functional core / imperative shell)
+
+- `osfl/engine/` — **pure NumPy core**: no I/O, no clock, no network; deterministic given
+  a seed. Modules: `funnel.py` (Beta-Binomial MC), `habit.py` (adherence MC), `bayes.py`
+  (conjugate updates), `strategy.py` (bottleneck, analytic min-volume, validation),
+  `priority.py` (queue scoring), `stats.py` (summaries).
+- `osfl/agents.py` — Planner / Simulator / Persona / Followup / Wellbeing /
+  DecisionAdvisor / Advisor / Memory: thin domain classes over engine + store + persona.
+- `osfl/orchestrator.py` — routes an intent (or free text) to an ordered agent set and
+  records a per-agent trace with timings.
+- `osfl/app.py` — FastAPI routes + the static dashboard; logging configured at entry;
+  `GET /healthz` for liveness.
+- `osfl/store.py` — the whole backend is one JSON file (`data/store.json`): atomic
+  writes (temp file + os.replace) under a reentrant lock, typed boundary, domain
+  StoreError on corruption or unknown collections.
+- `osfl/models.py` — single source of types: Pydantic v2 domain models + request DTOs
+  with `extra="forbid"`, numeric bounds, ISO-date validation.
+- `osfl/llm.py` — optional OpenAI wrapper: 30s timeout, 2 retries, JSON responses
+  validated by callers, graceful logged fallbacks; the app never hard-depends on it.
+- `static/` — Alpine + Tailwind dashboard, vendored (zero network), provenance and
+  sha384 pins in `static/VENDORED.md`.
+
+## API surface
+
+    GET  /healthz                      liveness: store readable, goal count, llm flag
+    GET  /api/state                    full dashboard payload
+    GET  /api/goals                    list goals          GET /api/goals/{id}
+    POST /api/goals                    create (auto-decompose)
+    POST /api/goals/{id}/decompose     re-decompose
+    PATCH /api/goals/{id}              edit volume/deadline/threshold/status
+    POST /api/goals/{id}/simulate      Monte-Carlo forecast {runs, seed}
+    POST /api/goals/{id}/validate      strategy report: pass/bottleneck/min-volume/fixes
+    POST /api/goals/{id}/outcomes      log k/n → Bayes update → re-forecast bundle
+    GET  /api/queue                    ranked next-shot list across all goals
+    GET  /api/wellbeing                momentum / streak / load / at-risk
+    GET  /api/followups                threads needing a nudge
+    POST /api/draft                    you-voiced message {shot_type_id, persona, ...}
+    POST /api/orchestrate              free text → intent → agent set → trace
+    POST /api/advise                   scenario advice grounded in forecasts (LLM)
+    GET  /api/llm/status               whether the optional LLM layer is active
+
+## Engineering signals (verify, don't trust)
+
+- CI on every push/PR: `uv sync --locked` → `ruff check` → `ruff format --check` →
+  `mypy osfl` → full pytest (with Playwright E2E). Actions pinned to 40-char SHAs,
+  `permissions: contents: read`. Badge in the README resolves to the live workflow.
+- `mypy --strict osfl`: zero issues. Curated ruff set (E,W,F,I,B,UP,S,SIM,RUF) clean.
+- Tests assert specific expected values (201, 150, Beta(7,48), score orderings), include
+  RED-before/GREEN-after regression tests for every engine guard, property-based tests
+  (Hypothesis), API contract tests, and browser E2E. Engine mutants are killed (verified
+  by a mutation pass; mutmut config committed).
+- Verbatim MIT LICENSE (GitHub-detected), PEP 639 `License-Expression: MIT` in the
+  wheel, committed `uv.lock`, pinned `.python-version`.
+- Honest-docs policy: the README deletes rather than embellishes (no fake badges, no
+  authority comments); deliberate trade-offs live in numbered ADRs; `AGENTS.md` lists
+  the exact commands an agent should run before claiming work is done.
+
+## Known limitations (stated, not hidden)
+
+- Single-user, localhost-by-design (binds 127.0.0.1; no auth/CORS because none is
+  needed for that threat model — do not deploy it multi-tenant as-is).
+- The LLM layer requires an OpenAI key and is optional; without it, drafting and advice
+  use deterministic fallbacks.
+- `static/tailwind.js` is the Tailwind Play CDN build — fine for a self-contained local
+  dashboard, not a production CSS pipeline.
+- ROADMAP.md is aspirational, not a claim about current capabilities.
+
+## For agents working ON this repo
+
+Read AGENTS.md first. Key gotchas: the MC-below-closed-form gap is intentional
+(ADR 0001); the engine must stay pure (no I/O); tests force the offline LLM path; run
+`uv run ruff check . && uv run ruff format --check . && uv run mypy osfl && uv run pytest -q`
+before calling any change done — it is exactly what CI enforces.

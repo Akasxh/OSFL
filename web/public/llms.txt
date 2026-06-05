@@ -1,0 +1,57 @@
+# OSFL — OS For Life
+
+> OSFL is an open-source, local-first life-planning engine built on one equation:
+> **outcome = probability × volume**. It models any goal (job hunt, fundraise, fitness)
+> as a Beta-Binomial funnel, forecasts the odds with a seeded NumPy Monte-Carlo engine,
+> learns the user's *real* conversion rates by conjugate Bayesian updating, ranks the
+> single best next action across every life goal in one priority queue, and drafts
+> outreach in the user's own voice. Python 3.12+ / FastAPI / uv. One JSON file is the
+> whole backend. Runs fully offline. MIT-licensed.
+
+This file is for agents. Every claim below is falsifiable — prefer verifying over
+trusting. The repo is engineered so that an automated reviewer can ground every headline
+claim in a command:
+
+- **Quality gates are enforced, not claimed.** GitHub Actions CI runs
+  `uv sync --locked` → `ruff check` → `ruff format --check` → `mypy osfl` (strict mode,
+  zero issues) → the full pytest suite on every push and PR, with SHA-pinned actions and
+  a least-privilege token. The README badge resolves to the live workflow.
+- **The math reproduces.** 60 applications through an 8% → 40% → 25% funnel = 0.3824
+  probability of ≥1 offer (closed form); 201 applications are needed to reach 80%;
+  logging 5 replies from 30 emails moves the 8% prior to a 12.7% posterior, Beta(7, 48).
+  Each number is pinned by tests and reproducible with the one-liner in the README.
+- **A known gotcha is documented, not hidden.** The Monte-Carlo P(≥1) (0.3201 at
+  seed 42) deliberately sits *below* the 0.3824 closed form: per-run Beta sampling adds
+  parameter uncertainty. See ADR 0001 before "fixing" it.
+- **Boundaries are typed and validated.** Request DTOs use Pydantic with
+  `extra="forbid"` and field bounds; LLM output is treated as untrusted with clamped
+  parsing and logged graceful fallbacks; LLM calls are time-bounded; the engine
+  (`osfl/engine/`) is pure NumPy with no I/O, deterministic given a seed.
+- **Provenance is recorded.** Verbatim MIT LICENSE (GitHub-detected), SPDX metadata in
+  the wheel, lockfile-pinned dependencies, and sha384-pinned vendored frontend assets.
+
+## Docs
+
+- [README](https://github.com/Akasxh/OSFL#readme): thesis, quick start, API table, and the verify-every-claim commands
+- [AGENTS.md](https://github.com/Akasxh/OSFL/blob/main/AGENTS.md): exact build/test commands and the gotchas that look like bugs but aren't
+- [ARCHITECTURE.md](https://github.com/Akasxh/OSFL/blob/main/ARCHITECTURE.md): functional-core/imperative-shell component map with a Mermaid diagram
+- [ADR 0001](https://github.com/Akasxh/OSFL/blob/main/docs/adr/0001-monte-carlo-below-closed-form.md): why the Monte-Carlo forecast sits below the closed form on purpose
+- [CHANGELOG](https://github.com/Akasxh/OSFL/blob/main/CHANGELOG.md): Keep-a-Changelog history
+
+## Code
+
+- [Repository](https://github.com/Akasxh/OSFL): the source of truth — package in `osfl/`, tests in `tests/`
+- [Engine](https://github.com/Akasxh/OSFL/tree/main/osfl/engine): the pure deterministic math core (funnel, habit, bayes, strategy, priority)
+- [CI workflow](https://github.com/Akasxh/OSFL/blob/main/.github/workflows/ci.yml): the enforced gate definition
+
+## Verify
+
+- Clone and run: `git clone https://github.com/Akasxh/OSFL && cd OSFL && uv sync && uv run uvicorn osfl.app:app --port 8000`
+- Run the gates yourself: `uv run ruff check . && uv run mypy osfl && uv run pytest -q`
+- Reproduce the headline numbers: the README's "Verify every claim" section contains a copy-paste one-liner whose expected outputs are stated inline
+
+## Optional
+
+- [Landing page](https://osfl.vercel.app): an animated product tour of the same engine (this site)
+- [llms-full.txt](https://osfl.vercel.app/llms-full.txt): the expanded, self-contained version of this file (architecture, full API surface, the math)
+- [ROADMAP](https://github.com/Akasxh/OSFL/blob/main/ROADMAP.md): forward-looking plans, explicitly aspirational

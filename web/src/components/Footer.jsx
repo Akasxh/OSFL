@@ -14,6 +14,7 @@ export default function Footer() {
           <a className="nav-link" href="#folder">The Folder</a>
           <a className="nav-link" href="#sim">The Sim</a>
           <a className="nav-link" href="https://github.com/Akasxh/OSFL" target="_blank" rel="noreferrer">GitHub ↗</a>
+          <a className="nav-link" href="/llms.txt" title="machine-readable project summary (llms.txt standard)">for agents → /llms.txt</a>
         </div>
       </div>
       <div className="wrap" style={{ paddingBottom: 28, display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
